@@ -126,7 +126,7 @@ for e in sorted(EBOOKS.glob("*/venda.md")):
         shutil.copy(e.parent / "capa-quadrada.png", dst / f"{slug}.png")
     t = e.read_text(); titulo = re.search(r"^#\s*(.+)$", t, re.M); preco = re.search(r"R\$\s*[\d,]+", t)
     url = links.get(slug, "")
-    sub = re.search(r"^\*\*(.+?)\*\*", t, re.M); bullets = re.findall(r"^- (.+)$", t, re.M)
+    sub = re.search(r"^\*\*(?:Subt[íi]tulo:\*\*\s*)?(.+?)(?:\*\*)?$", t, re.M); bullets = re.findall(r"^- (.+)$", t, re.M)
     paras = [l for l in t.split("\n\n") if l.strip() and not l.lstrip().startswith(("#", "-", "**", "Preço"))]
     if (e.parent / "capa-vertical.png").exists(): shutil.copy(e.parent / "capa-vertical.png", dst / f"{slug}-vertical.png")
     pd = AQUI / "ebooks" / slug; pd.mkdir(parents=True, exist_ok=True)
