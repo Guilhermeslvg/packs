@@ -126,6 +126,21 @@ for e in sorted(EBOOKS.glob("*/venda.md")):
         shutil.copy(e.parent / "capa-quadrada.png", dst / f"{slug}.png")
     t = e.read_text(); titulo = re.search(r"^#\s*(.+)$", t, re.M); preco = re.search(r"R\$\s*[\d,]+", t)
     url = links.get(slug, "")
+    sub = re.search(r"^\*\*(.+?)\*\*", t, re.M); bullets = re.findall(r"^- (.+)$", t, re.M)
+    paras = [l for l in t.split("\n\n") if l.strip() and not l.lstrip().startswith(("#", "-", "**", "Preço"))]
+    if (e.parent / "capa-vertical.png").exists(): shutil.copy(e.parent / "capa-vertical.png", dst / f"{slug}-vertical.png")
+    pd = AQUI / "ebooks" / slug; pd.mkdir(parents=True, exist_ok=True)
+    ttl = titulo.group(1) if titulo else slug; pr = preco.group(0) if preco else ""
+    btn = f'<a class="btn" href="{html.escape(url)}">Quero o e-book por {pr}</a>' if url else '<a class="btn off" aria-disabled="true">Em breve</a>'
+    (pd / "index.html").write_text(HEAD.format(title=ttl, desc=html.escape(sub.group(1) if sub else ""), og=f"../../img/ebooks/{slug}.png", base="../../") + f"""
+<div class="wrap"><header class="top"><a href="../../">Packs de Fim de Ano</a><span>{pr}</span></header>
+<div class="hero"><div><span class="olho">E-book</span><h1>{html.escape(ttl)}</h1><p class="sub">{html.escape(sub.group(1) if sub else "")}</p>
+<div class="preco"><b>{pr}</b><span>PDF · acesso imediato</span></div>{btn}<p class="seg">Compra segura pela Kiwify. Você recebe o acesso por email na hora.</p></div>
+<div><img src="../../img/ebooks/{slug}-vertical.png" alt="Capa do e-book" style="width:100%;border-radius:10px"></div></div></div>
+<section><div class="wrap"><h2>O que tem dentro</h2><p class="desc">{html.escape(paras[0].strip() if paras else "")}</p><ul class="lista">{''.join(f"<li>{html.escape(b)}</li>" for b in bullets)}</ul></div></section>
+<section class="final"><div class="wrap"><h2>{html.escape(ttl)}</h2>{btn}</div></section>
+<footer><div class="wrap">Packs de Fim de Ano · E-books</div></footer></body></html>""")
+    url = f"ebooks/{slug}/"
     eb_cards.append(f'<a href="{html.escape(url) if url else "#"}"><img src="img/ebooks/{slug}.png" alt="" loading="lazy"><div><b>{html.escape(titulo.group(1) if titulo else slug)}</b><span>E-book · {preco.group(0) if preco else ""}</span></div></a>')
 
 AQUI.joinpath("index.html").write_text(HEAD.format(title="Packs de Fim de Ano", desc="30 packs de artes de Instagram prontas pro fim de ano, um pra cada profissão. R$ 27 cada.", og="img/dentista/capa-kiwify.jpg", base="") + f"""
