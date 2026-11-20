@@ -119,7 +119,8 @@ for pj in sorted((PACKS / "packs").glob("*/pack.json")):
 
 # e-books
 eb_cards = []
-for e in sorted(EBOOKS.glob("*/venda.md")):
+EXTRAS = [AQUI.parent / n / "venda.md" for n in ("kit-metas-2027", "ferias-sem-tela") if (AQUI.parent / n / "venda.md").exists()]
+for e in sorted(EBOOKS.glob("*/venda.md")) + EXTRAS:
     slug = e.parent.name
     dst = AQUI / "img" / "ebooks"; dst.mkdir(parents=True, exist_ok=True)
     if (e.parent / "capa-quadrada.png").exists():
@@ -141,7 +142,7 @@ for e in sorted(EBOOKS.glob("*/venda.md")):
 <section class="final"><div class="wrap"><h2>{html.escape(ttl)}</h2>{btn}</div></section>
 <footer><div class="wrap">Packs de Fim de Ano · E-books</div></footer></body></html>""")
     url = f"ebooks/{slug}/"
-    eb_cards.append(f'<a href="{html.escape(url) if url else "#"}"><img src="img/ebooks/{slug}.png" alt="" loading="lazy"><div><b>{html.escape(titulo.group(1) if titulo else slug)}</b><span>E-book · {preco.group(0) if preco else ""}</span></div></a>')
+    eb_cards.append(f'<a href="{html.escape(url) if url else "#"}"><img src="img/ebooks/{slug}.png" alt="" loading="lazy"><div><b>{html.escape(titulo.group(1) if titulo else slug)}</b><span>{"E-book" if e.parent.parent == EBOOKS else "Kit imprimível"} · {preco.group(0) if preco else ""}</span></div></a>')
 
 AQUI.joinpath("index.html").write_text(HEAD.format(title="Packs de Fim de Ano", desc="30 packs de artes de Instagram prontas pro fim de ano, um pra cada profissão. R$ 27 cada.", og="img/dentista/capa-kiwify.jpg", base="") + f"""
 <div class="wrap"><header class="top"><span>Packs de Fim de Ano</span><span>R$ 27 cada</span></header>
