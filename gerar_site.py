@@ -1,154 +1,1292 @@
-"""Gera o site de vendas dos packs (GitHub Pages).
-uso: python3 gerar_site.py   → index.html + <slug>/index.html + ebooks
-Os links de checkout da Kiwify ficam em links.json ({"dentista": "https://pay.kiwify.com.br/...", ...}).
+"""Gera o site de vendas dos packs (GitHub Pages, publicado em /packs/).
+uso: python3 gerar_site.py  ->  estilo.css + site.js + index.html + <slug>/index.html + ebooks/<slug>/index.html
+
+Fontes de dados:
+  ../packs-fim-de-ano/packs/<slug>/pack.json e venda.md   (texto e artes de cada pack)
+  ../packs-fim-de-ano/saida/<slug>/canva-*.pdf           (conta as páginas dos PDFs de verdade)
+  ../packs-fim-de-ano/kiwify-bumps.json                  (extras opcionais do checkout de cada pack)
+  ../ebooks/<slug>/venda.md, ../kit-metas-2027, ../ferias-sem-tela
+  links.json                                             (links de checkout da Kiwify; sem link = botão "Em breve")
+Imagens das artes: img/<slug>/*.jpg (já exportadas). Capas e prévias dos e-books são copiadas pra img/ebooks/.
 """
-import html, json, pathlib, re, shutil
+import html, json, pathlib, re, shutil, subprocess, unicodedata
 
 AQUI = pathlib.Path(__file__).parent
 PACKS = AQUI.parent / "packs-fim-de-ano"
 EBOOKS = AQUI.parent / "ebooks"
-links = json.loads((AQUI / "links.json").read_text()) if (AQUI / "links.json").exists() else {}
+SITE = "https://guilhermeslvg.github.io/packs/"   # endereço público (og:image precisa de URL completa)
+META_PIXEL_ID = ""   # cole aqui o ID do Pixel da Meta quando tiver; vazio = nada de pixel na página
 
-CSS = """
-:root{--bg:#120e0c;--card:#1d1714;--txt:#f4ece2;--apag:#b8a999;--linha:#33291f;--dest:#EBD6A8;--tinta:#2B201C;
---serif:"Instrument Serif",Georgia,serif;--sans:Inter,system-ui,sans-serif}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--txt);font:400 17px/1.6 var(--sans)}
+links = json.loads((AQUI / "links.json").read_text()) if (AQUI / "links.json").exists() else {}
+bumps = json.loads((PACKS / "kiwify-bumps.json").read_text()) if (PACKS / "kiwify-bumps.json").exists() else []
+# aspas retas em par viram curvas (“assim”) antes de escapar, igual ao calendário "Quando postar cada uma"
+aspas = lambda s: re.sub(r'"([^"\n]+)"', "\u201c\\1\u201d", s)
+esc = lambda s: html.escape(aspas(str(s or "")), quote=True)
+NB = "\u00a0"                 # espaço que não quebra: "R$ 27" e "7 dias" nunca se separam
+PRECO = f"R${NB}27"
+GARANTIA = f"7{NB}dias de garantia"
+CONFIA = f"Pix, cartão ou boleto · {GARANTIA}"   # sem "acesso na hora": no boleto não é
+
+# nome de cada profissão na vitrine e no rótulo da página, sempre no plural de quem compra
+NOMES = {
+    "academia": "Academias", "advogado": "Advogados", "arquitetura-interiores": "Arquitetos e designers de interiores",
+    "barbearia": "Barbearias", "cafeteria": "Cafeterias", "confeitaria": "Confeitarias", "contador": "Contadores",
+    "corretor-de-imoveis": "Corretores de imóveis", "dentista": "Dentistas", "dermatologista": "Dermatologistas",
+    "escola-de-idiomas": "Escolas de idiomas", "estetica": "Clínicas de estética", "fisioterapeuta": "Fisioterapeutas",
+    "floricultura": "Floriculturas", "fotografo": "Fotógrafos", "hamburgueria": "Hamburguerias",
+    "harmonizacao": "Profissionais de harmonização facial", "loja-de-roupas": "Lojas de roupas", "maquiadora": "Maquiadoras",
+    "medico": "Médicos", "mentora": "Mentoras de negócios", "nail-designer": "Nail designers", "nutricionista": "Nutricionistas",
+    "otica": "Óticas", "personal-trainer": "Personal trainers", "pet-shop": "Pet shops", "psicologa": "Psicólogas",
+    "restaurante": "Restaurantes", "salao-de-beleza": "Salões de beleza", "sobrancelha": "Designers de sobrancelha",
+}
+# primeiro os nichos que têm extras no checkout, depois o resto em ordem alfabética
+PRIMEIRO = ["dentista", "estetica", "salao-de-beleza", "barbearia", "nail-designer"]
+
+# quem fez: foto e Instagram de verdade do Guilherme
+QUEM_FOTO = "img/guilherme.jpg"     # retrato 4:5 (recorte da foto do site pessoal dele)
+QUEM_IG = "guiilhermesg_"
+AVISOS = []
+
+
+# ----------------------------------------------------------------------------------------------
+# CSS
+# ----------------------------------------------------------------------------------------------
+CSS = r"""/* Packs de Fim de Ano · estilo gerado por gerar_site.py (não edite à mão)
+   Paleta: chão quase preto quente, ouro claro das artes, creme das telas claras do carrossel. */
+:root{
+  --chao:#16110e;        /* fundo */
+  --chao2:#211a15;       /* superfície um tom acima */
+  --chao3:#2c231d;       /* superfície dentro de superfície */
+  --tinta:#f4ece2;       /* texto */
+  --apagado:#c2b4a3;     /* texto secundário: 8:1 sobre --chao */
+  --rotulo:rgba(244,236,226,.62);
+  --ouro:#ecd7a9;        /* destaque e ação */
+  --ouro-tinta:#22180f;  /* texto sobre o ouro */
+  --fio:rgba(236,214,163,.15);
+  --borda-arte:rgba(236,214,163,.14);
+  --creme:#f3eae0;
+  --creme2:#e9dccd;
+  --creme-tinta:#2b201c;
+  --creme-apagado:#5f4e41;
+
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+
+  --margem:16px;
+  --secao:64px;
+  --max:1344px;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+  --ease-gaveta:cubic-bezier(.32,.72,0,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--chao);color:var(--tinta);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-tap-highlight-color:transparent;overflow-x:clip}
+img{display:block;max-width:100%;height:auto}
 a{color:inherit}
-.wrap{max-width:1180px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
-header.top{display:flex;justify-content:space-between;align-items:center;padding-block:22px;font:600 13px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--apag)}
-header.top a{text-decoration:none}
-.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding-block:30px 70px}
-.hero h1{font:italic 400 clamp(52px,7vw,96px)/.95 var(--serif);margin:10px 0 18px;color:var(--dest);text-wrap:balance}
-.olho{font:600 13px var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--apag)}
-.hero p.sub{font-size:20px;color:#e2d6c8;max-width:34ch;margin:0 0 26px}
-.preco{display:flex;align-items:baseline;gap:14px;margin-bottom:22px}
-.preco b{font:italic 400 64px/1 var(--serif)}.preco span{color:var(--apag)}
-.btn{display:inline-block;background:var(--dest);color:var(--tinta);font:600 18px var(--sans);text-decoration:none;padding:17px 30px;border-radius:10px;transition:transform .15s}
-.btn:hover{transform:translateY(-2px)}.btn:focus-visible{outline:2px solid var(--txt);outline-offset:3px}
-.btn.off{opacity:.55;pointer-events:none}
-.seg{font-size:14px;color:var(--apag);margin-top:14px}
-.leque{position:relative;height:540px}
-.leque img{position:absolute;width:56%;border-radius:10px;box-shadow:0 30px 60px rgba(0,0,0,.55)}
-.leque .a{left:0;top:60px;transform:rotate(-7deg)}.leque .b{left:22%;top:0;z-index:2;width:58%}.leque .c{right:0;top:60px;transform:rotate(7deg)}
-section{padding-block:56px;border-top:1px solid var(--linha)}
-h2{font:italic 400 clamp(38px,5vw,58px)/1 var(--serif);margin:0 0 10px}
-.desc{color:var(--apag);max-width:60ch;margin:0 0 28px}
-.grade{display:grid;gap:12px}
-.g6{grid-template-columns:repeat(6,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
-.grade img{width:100%;border-radius:6px;display:block}
-.lista{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 40px;padding:0;list-style:none;max-width:900px}
-.lista li{padding-left:28px;position:relative}.lista li::before{content:"✦";position:absolute;left:0;color:var(--dest)}
-.passos{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;counter-reset:p}
-.passo{background:var(--card);border:1px solid var(--linha);border-radius:12px;padding:22px}
-.passo b{display:block;font:italic 400 40px/1 var(--serif);color:var(--dest);margin-bottom:8px}
-details{border-bottom:1px solid var(--linha);padding-block:16px;max-width:800px}
-summary{cursor:pointer;font-weight:600}
-.final{text-align:center}.final h2{margin-bottom:18px}
-footer{padding-block:40px;color:var(--apag);font-size:14px;border-top:1px solid var(--linha)}
-.cat{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
-.cat a{text-decoration:none;background:var(--card);border:1px solid var(--linha);border-radius:12px;overflow:hidden;display:block;transition:border-color .15s}
-.cat a:hover{border-color:var(--dest)}
-.cat img{width:100%;display:block;aspect-ratio:1;object-fit:cover}
-.cat div{padding:14px 16px}.cat b{font:italic 400 28px/1.1 var(--serif);display:block}.cat span{color:var(--apag);font-size:14px}
-@media (max-width:860px){.hero{grid-template-columns:1fr}.leque{height:380px}.g6{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(2,1fr)}.lista,.passos{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
+h1,h2,h3{font-family:var(--serif);font-style:italic;font-weight:400;margin:0;letter-spacing:-.015em}
+p{margin:0;text-wrap:pretty}
+ol,ul{margin:0;padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--ouro);outline-offset:3px;border-radius:2px}
+::selection{background:var(--ouro);color:var(--ouro-tinta)}
+
+.pular{position:absolute;left:var(--margem);top:-60px;background:var(--ouro);color:var(--ouro-tinta);padding:10px 14px;z-index:50;text-decoration:none;font-weight:600}
+.pular:focus{top:10px}
+
+/* toda miniatura de arte ganha um fio claro, pra arte escura não sumir no fundo escuro */
+.arte{outline:1px solid var(--borda-arte);outline-offset:-1px;border-radius:2px}
+
+/* botão */
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:14px 26px;background:var(--ouro);color:var(--ouro-tinta);font:600 17px/1.2 var(--sans);text-decoration:none;border-radius:999px;transition:transform 160ms var(--ease-out),background-color 200ms ease;touch-action:manipulation;user-select:none;-webkit-user-select:none;text-align:center}
+.btn:active{transform:scale(.97)}
+@media (hover:hover){.btn:hover{background:#f5e4bd}}
+.btn.off{background:var(--chao3);color:var(--apagado);cursor:default}
+
+/* topo */
+.topo{padding:8px var(--margem);padding-top:max(8px,env(safe-area-inset-top))}
+.topo-in{max-width:calc(var(--max) - 2 * 48px);margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.marca{font:italic 400 23px/1 var(--serif);text-decoration:none;min-height:44px;display:flex;align-items:center}
+.topo-comprar{font-weight:600;font-size:15px;text-decoration:none;color:var(--ouro);min-height:44px;display:flex;align-items:center;text-underline-offset:4px}
+@media (hover:hover){.topo-comprar:hover{text-decoration:underline}}
+.topo-comprar.off{color:var(--apagado)}
+
+/* hero */
+.hero{padding:4px var(--margem) 0;max-width:var(--max);margin:0 auto;display:grid;gap:18px}
+.rotulo{font:600 16px/1.35 var(--sans);color:var(--tinta)}
+.hero h1{font-size:clamp(44px,12.4vw,60px);line-height:.95;color:var(--ouro);margin-top:10px;text-wrap:balance}
+.hero h1.longo{font-size:clamp(40px,11vw,60px)}
+.hero-sub{font-size:18px;line-height:1.42;margin-top:14px;max-width:34ch;text-wrap:balance}
+.hero-compra{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:18px;row-gap:10px}
+.preco-valor{font:italic 400 48px/1 var(--serif);color:var(--tinta);white-space:nowrap}
+.hero-compra .btn{width:100%}
+.seguro{grid-column:1/-1;color:var(--apagado);font-size:14px;line-height:1.4}
+
+/* palco: capa e celular lado a lado. O celular nunca cobre a faixa de baixo da capa (nome, registro e @):
+   a borda de baixo dele fica acima de 85% da altura da capa e ele invade a capa em no máximo 8px. */
+.hero-palco{display:grid;grid-template-columns:63fr 37fr;align-items:start;margin-top:6px;container-type:inline-size}
+.hero-capa{grid-column:1;grid-row:1;display:block;margin-top:24cqw}
+.hero-capa img{width:100%}
+.palco-lado{display:contents}
+.celular{grid-column:2;grid-row:1;margin:0 -12px 0 -6px;z-index:2;position:relative;container-type:inline-size}
+.palco-nota{grid-column:1/-1;grid-row:2;color:var(--apagado);font-size:14px;line-height:1.4;margin-top:12px;max-width:40ch}
+
+/* celular em CSS: tudo dentro escala com a largura do aparelho */
+.cel-tela{aspect-ratio:9/18.6;background:#000;border-radius:13cqw;border:2.4cqw solid #2e2620;overflow:hidden;position:relative;font-family:-apple-system,"Hanken Grotesk",system-ui,sans-serif;color:#f5f5f5;box-shadow:0 0 0 .6cqw #4a3e34,0 24px 60px rgba(0,0,0,.5)}
+.cel-status{display:flex;justify-content:space-between;align-items:center;padding:3.6cqw 8cqw 0;font-size:4.2cqw;font-weight:600;height:11cqw}
+.cel-ilha{width:28cqw;height:8cqw;background:#111;border-radius:99px;position:absolute;left:50%;top:2.4cqw;transform:translateX(-50%)}
+.cel-bat{width:7.5cqw;height:3.6cqw;border-radius:1cqw;background:#f5f5f5}
+.ig-topo{padding:2cqw 5cqw 3cqw;font-size:5.2cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ig-perfil{display:flex;gap:4.5cqw;align-items:center;padding:0 5cqw}
+.ig-avatar{flex:none;width:20cqw;height:20cqw;border-radius:50%;display:grid;place-items:center;background:var(--chao3);color:var(--ouro);font:italic 400 8cqw/1 var(--serif);box-shadow:0 0 0 .8cqw #000,0 0 0 1.5cqw var(--ouro)}
+.ig-nome{display:grid;font-size:3.7cqw;line-height:1.35;color:#cfcfcf;min-width:0}
+.ig-nome>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ig-nome b{color:#f5f5f5;font-size:4cqw}
+.ig-botoes{display:grid;grid-template-columns:1fr 1fr;gap:2cqw;padding:4cqw 5cqw 0}
+.ig-botoes span{background:#363636;color:#fff;border-radius:2.4cqw;text-align:center;font-size:3.6cqw;font-weight:600;padding:2.2cqw 0}
+.ig-destaques{display:flex;gap:3.6cqw;padding:4.5cqw 5cqw 4cqw}
+.ig-destaques span{display:grid;justify-items:center;gap:1.4cqw;width:15cqw}
+.ig-destaques img{width:15cqw;height:15cqw;border-radius:50%;object-fit:cover;object-position:50% 40%;box-shadow:0 0 0 .5cqw #000,0 0 0 1cqw #3a3a3a}
+.ig-destaques i{font-style:normal;font-size:2.9cqw;color:#ddd;white-space:nowrap;max-width:17cqw;overflow:hidden;text-overflow:ellipsis}
+.ig-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:.5cqw}
+.ig-grade img{width:100%;aspect-ratio:4/5;object-fit:cover}
+.ig-multi{position:relative}
+.ig-multi::after{content:"";position:absolute;right:2cqw;top:2cqw;width:3.4cqw;height:3.4cqw;border:.6cqw solid #fff;border-radius:.6cqw;box-shadow:.9cqw -.9cqw 0 -.2cqw rgba(255,255,255,.9)}
+
+/* entrada da página: a capa e o feed do celular aparecem em sequência, uma vez */
+@media (prefers-reduced-motion:no-preference){
+  .hero-capa{animation:sobe 700ms var(--ease-out) both}
+  .cel-tela{animation:sobe 700ms var(--ease-out) 120ms both}
+  .ig-grade>*{animation:aparece 500ms var(--ease-out) both}
+  .ig-grade>*:nth-child(1){animation-delay:520ms}
+  .ig-grade>*:nth-child(2){animation-delay:590ms}
+  .ig-grade>*:nth-child(3){animation-delay:660ms}
+  .ig-grade>*:nth-child(4){animation-delay:730ms}
+  .ig-grade>*:nth-child(5){animation-delay:800ms}
+  .ig-grade>*:nth-child(6){animation-delay:870ms}
+}
+@keyframes sobe{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes aparece{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+
+/* blocos */
+.bloco{padding:var(--secao) var(--margem) 0;max-width:var(--max);margin:0 auto}
+.cab h2,.bloco>h2,.dados h2,.creme h2,.compra h2,.duvidas h2{font-size:clamp(38px,10.4vw,48px);line-height:1;color:var(--tinta);text-wrap:balance}
+.cab p{margin-top:12px;max-width:52ch}
+.cab{margin-bottom:20px}
+
+/* artes clicáveis */
+a.abre{display:block;overflow:hidden;background:var(--chao2);cursor:zoom-in;border-radius:2px}
+a.abre img{width:100%;transition:transform 400ms var(--ease-out)}
+@media (hover:hover){a.abre:hover img{transform:scale(1.025)}}
+a.abre:active img{transform:scale(.985);transition-duration:160ms}
+.legenda{display:block;font-size:15px;color:var(--apagado);margin-top:10px;line-height:1.35}
+/* no celular a arte já diz o que é: legenda só no computador */
+.grade-posts .legenda,.fila-stories .legenda{display:none}
+
+/* carrossel no celular: moldura de post do Instagram, desliza de lado */
+.post-ig{margin-inline:calc(var(--margem) * -1)}
+.pig-cab{display:flex;align-items:center;gap:10px;padding:0 var(--margem) 10px;font-size:14px}
+.pig-av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--chao3);color:var(--ouro);font:italic 400 14px/1 var(--serif);box-shadow:0 0 0 1.5px var(--chao),0 0 0 3px var(--ouro)}
+.pig-cab b{font-weight:600}
+.pig-cab .pig-mais{margin-left:auto;letter-spacing:.12em;color:var(--apagado)}
+.pig-palco{position:relative}
+.trilho{display:grid;grid-auto-flow:column;grid-auto-columns:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.trilho::-webkit-scrollbar{display:none}
+.trilho li{scroll-snap-align:start;scroll-snap-stop:always}
+.trilho .legenda{display:none}
+.trilho a.abre,.trilho .arte{border-radius:0}
+.pig-cont{position:absolute;right:12px;top:12px;background:rgba(14,10,8,.72);color:#fff;font:600 12px/1 var(--sans);padding:6px 9px;border-radius:99px;font-variant-numeric:tabular-nums;pointer-events:none}
+.pig-pontos{display:flex;justify-content:center;gap:5px;padding:12px 0 0}
+.pig-pontos i{width:6px;height:6px;border-radius:50%;background:#5a4d42;transition:background-color 200ms ease}
+.pig-pontos i.on{background:var(--ouro)}
+.dica-toque{color:var(--apagado);font-size:15px;margin-top:12px}
+
+/* posts */
+.grade-posts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* stories */
+.fila-stories{display:grid;grid-auto-flow:column;grid-auto-columns:58%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:calc(var(--margem) * -1);padding:0 var(--margem) 8px;scroll-padding-inline:var(--margem);scrollbar-width:none;overscroll-behavior-x:contain}
+.fila-stories::-webkit-scrollbar{display:none}
+.fila-stories li{scroll-snap-align:start}
+
+/* quando postar */
+.datas{border-bottom:1px solid var(--fio)}
+.datas li{display:grid;grid-template-columns:1fr auto;grid-template-areas:"q m" "o m";column-gap:16px;row-gap:2px;align-items:center;padding:14px 0;border-top:1px solid var(--fio)}
+.quando{grid-area:q;font:italic 400 22px/1.1 var(--serif);color:var(--ouro);align-self:end}
+.oque{grid-area:o;font-size:15px;line-height:1.4;align-self:start}
+.mini{grid-area:m;display:flex;gap:6px;align-items:flex-end}
+.mini img{width:56px;height:70px;object-fit:cover}
+.mini img.st{width:40px}
+
+/* seus dados / regras do conselho */
+.dados{display:grid;gap:28px}
+.declara{font-size:19px;line-height:1.42;margin-top:16px;max-width:36ch}
+.aviso{color:var(--apagado);margin-top:12px;max-width:46ch;font-size:16px}
+.dados-prova{margin:0}
+.recorte{position:relative;aspect-ratio:720/226;overflow:visible}
+.recorte img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+.aqui{position:absolute;top:44%;transform:translateY(-50%);background:var(--ouro);color:var(--ouro-tinta);font:600 15px/1 var(--sans);padding:8px 12px 8px 10px;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.aqui::before{content:"";position:absolute;right:100%;top:50%;transform:translateY(-50%);border:7px solid transparent;border-right-color:var(--ouro)}
+.dados-prova figcaption{color:var(--apagado);font-size:15px;margin-top:12px;max-width:52ch}
+
+/* campo creme */
+.creme{max-width:none;padding-inline:0;margin-top:var(--secao);padding-top:0}
+.creme-in{background:var(--creme);color:var(--creme-tinta);padding:56px var(--margem)}
+.creme-in>*{max-width:calc(var(--max) - 2 * var(--margem));margin-inline:auto}
+.creme h2{color:var(--creme-tinta)}
+.passos{counter-reset:p;display:grid;gap:24px;margin-top:28px}
+.passos>li{counter-increment:p;display:grid;grid-template-columns:40px 1fr;column-gap:12px;align-content:start}
+.passos>li::before{content:counter(p);grid-row:1/4;font:italic 400 42px/.9 var(--serif);color:#8a6238}
+.passos b{font-weight:600;font-size:18px}
+.passos span{color:var(--creme-apagado);margin-top:2px;max-width:46ch}
+.pasta{margin-top:8px;display:grid;gap:0;font-size:15px;color:var(--creme-tinta)}
+.pasta li{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid rgba(43,32,28,.14)}
+.pasta li:last-child{border-bottom:1px solid rgba(43,32,28,.14)}
+.pasta code{font:600 15px/1.3 var(--sans)}
+.pasta small{font-size:15px;color:var(--creme-apagado);text-align:right;font-variant-numeric:tabular-nums}
+.pronta{margin-top:36px;background:var(--creme2);padding:22px 18px}
+.pronta h3{font-size:30px;line-height:1.05}
+.pronta p{margin-top:10px;max-width:58ch}
+
+/* compra */
+.compra{display:grid;gap:28px}
+.compra-arte{display:none}
+.leva{margin-top:20px;display:grid;gap:8px;font-size:18px}
+.leva li{padding-left:22px;position:relative}
+.leva li::before{content:"";position:absolute;left:2px;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--ouro)}
+.btn-grande{margin-top:26px;width:100%;min-height:58px;font-size:18px}
+.garantias{display:grid;gap:12px;margin-top:24px;color:var(--apagado);font-size:15px;max-width:52ch}
+.garantias b{color:var(--tinta);font-weight:600}
+
+/* dúvidas */
+.abre-duvidas{color:var(--apagado);margin-top:14px;max-width:56ch;font-size:16px}
+.lista-duvidas{margin-top:20px;display:grid;gap:8px}
+details{background:var(--chao2)}
+summary{cursor:pointer;list-style:none;padding:17px 52px 17px 18px;font-weight:600;font-size:17px;position:relative;min-height:56px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);font:400 28px/1 var(--serif);color:var(--ouro);transition:transform 200ms var(--ease-out)}
+details[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
+
+/* quem fez: foto de verdade, sem moldura enfeitada */
+.quem{display:grid;gap:20px}
+.quem-foto{margin:0;display:flex;align-items:flex-end;gap:16px}
+.quem-foto img{width:120px;height:150px;object-fit:cover;background:var(--creme2);border-radius:2px;flex:none}
+/* nome, cidade e @ encostados na base da foto: a linha do @ fecha junto com a borda de baixo do retrato */
+.quem-foto figcaption{display:grid;justify-items:start;gap:2px;font-size:16px;line-height:1.3}
+.quem-foto b{font-weight:600;font-size:17px}
+.quem-local{font-size:15px;color:var(--apagado)}
+.quem-foto a{color:var(--ouro);text-underline-offset:3px;line-height:1;margin-top:10px;position:relative;display:inline-block;padding-bottom:1px}
+.quem-foto a::after{content:"";position:absolute;inset:-14px -10px -14px -10px}  /* área de toque de 44px sem empurrar o texto */
+.quem p{font-size:19px;line-height:1.5;max-width:40ch}
+
+/* rodapé */
+.rodape{padding:var(--secao) var(--margem) 36px;max-width:var(--max);margin:0 auto}
+.rodape-nome{font:italic 400 clamp(42px,11vw,112px)/.95 var(--serif);text-wrap:balance;color:var(--ouro);letter-spacing:-.02em}
+.rodape .btn-grande{margin-top:32px}
+.rodape-linha{display:flex;flex-wrap:wrap;gap:8px 28px;justify-content:space-between;align-items:last baseline;margin-top:24px;color:var(--apagado);font-size:15px}
+.rodape-linha a{color:var(--tinta);text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center}
+
+/* barra fixa de compra no celular */
+.barra{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px var(--margem);padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--chao2);box-shadow:0 -10px 30px rgba(10,7,5,.55)}
+.barra p{display:grid;line-height:1.15}
+.barra p b{font:italic 400 30px/1 var(--serif)}
+.barra p span{font-size:13px;color:var(--apagado)}
+.barra .btn{min-height:48px;padding:12px 22px;flex:none}
+.js .barra{transform:translateY(110%);transition:transform 320ms var(--ease-gaveta),visibility 0s 320ms;visibility:hidden}
+.js .barra.on{transform:none;visibility:visible;transition:transform 320ms var(--ease-gaveta),visibility 0s}
+.com-barra{padding-bottom:76px}
+
+/* tela cheia */
+.luz{border:0;padding:0;margin:0;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;background:#0d0a08;color:var(--tinta)}
+.luz::backdrop{background:#0d0a08}
+.luz[open]{display:grid;place-items:center}
+.luz figure{margin:0;display:grid;justify-items:center;gap:12px;padding:64px 12px 84px}
+.luz img{max-width:min(92vw,720px);max-height:calc(100dvh - 170px);width:auto;height:auto}
+.luz figcaption{font-size:15px;color:var(--apagado);text-align:center;max-width:44ch}
+.luz button{position:absolute;background:var(--chao3);color:var(--tinta);border:0;font:600 15px var(--sans);min-width:48px;min-height:48px;border-radius:999px;cursor:pointer;transition:transform 160ms var(--ease-out)}
+.luz button:active{transform:scale(.95)}
+.luz-fechar{top:max(12px,env(safe-area-inset-top));right:12px;padding:0 18px}
+.luz-seta{bottom:max(18px,env(safe-area-inset-bottom));font:400 30px/1 var(--serif)!important}
+.luz-seta.ant{left:calc(50% - 60px)}
+.luz-seta.prox{left:calc(50% + 12px)}
+
+/* vitrine (página inicial) */
+.vit-hero{padding:4px var(--margem) 0;max-width:var(--max);margin:0 auto;display:grid;gap:28px}
+.vit-hero h1{font-size:clamp(44px,12.4vw,60px);line-height:.95;color:var(--ouro);margin-top:10px;text-wrap:balance}
+/* no celular, faixa que desliza com 1,3 capa à vista; no computador, 3 capas alinhadas pela base */
+.vit-capas{display:grid;grid-auto-flow:column;grid-auto-columns:74%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:calc(var(--margem) * -1);padding:0 var(--margem);scroll-padding-inline:var(--margem);scrollbar-width:none;overscroll-behavior-x:contain}
+.vit-capas::-webkit-scrollbar{display:none}
+.vit-capas a{display:block;text-decoration:none;scroll-snap-align:start}
+.vit-capas span{display:block;font-size:15px;color:var(--tinta);margin-top:10px;line-height:1.3}
+.vit-confia{color:var(--apagado);font-size:15px;margin-top:16px}
+.vit-hero .btn{margin-top:22px;width:100%}
+.vitrine{display:grid;grid-template-columns:1fr 1fr;gap:28px 12px}
+.vitrine a{text-decoration:none;display:block}
+.vitrine img{width:100%;object-fit:cover;transition:transform 400ms var(--ease-out)}
+.vitrine .foto{overflow:hidden;border-radius:2px}
+@media (hover:hover){.vitrine a:hover img{transform:scale(1.03)}.vitrine a:hover b{color:var(--ouro)}}
+.vitrine a:active img{transform:scale(.985)}
+.vitrine b{display:block;font:600 18px/1.25 var(--sans);margin-top:10px;transition:color 200ms ease;text-wrap:balance}
+.vitrine span{display:block;font-size:15px;color:var(--apagado);margin-top:2px}
+.vit-como{display:grid;gap:22px;margin-top:28px}
+.vit-como p{max-width:44ch}
+.vit-como b{display:block;font-weight:600;font-size:18px;margin-bottom:2px}
+
+/* e-book */
+.eb-capa{display:block;width:78%;margin:6px auto 0}
+.eb-capa img{width:100%}
+.eb-lista{display:grid;gap:14px;margin-top:22px;max-width:62ch}
+.eb-lista li{padding-left:22px;position:relative}
+.eb-lista li::before{content:"";position:absolute;left:2px;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--ouro)}
+.eb-desc{font-size:18px;line-height:1.5;max-width:46ch}
+
+/* tablet e computador */
+@media (min-width:900px){
+  :root{--margem:48px;--secao:160px}
+  body{font-size:18px}
+  .com-barra{padding-bottom:0}
+  .topo{position:sticky;top:0;z-index:10;background:var(--chao);padding-block:10px}
+  .topo-comprar{background:var(--ouro);color:var(--ouro-tinta);padding:0 20px;border-radius:999px;transition:transform 160ms var(--ease-out)}
+  .topo-comprar.off{background:var(--chao3);color:var(--apagado)}
+  .topo-comprar:active{transform:scale(.97)}
+  @media (hover:hover){.topo-comprar:hover{text-decoration:none;background:#f5e4bd}}
+  .barra{display:none}
+
+  .hero{grid-template-columns:6fr 6fr;grid-template-areas:"texto palco" "compra palco";grid-template-rows:1fr auto;column-gap:64px;row-gap:40px;padding-top:36px}
+  .hero-texto{grid-area:texto;align-self:end}
+  .hero-compra{grid-area:compra;align-self:end;margin-bottom:56px;grid-template-columns:auto auto;justify-content:start}
+  .hero-palco{grid-area:palco;margin:0}
+  .hero h1{font-size:clamp(60px,5.3vw,78px)}
+  .rotulo{font-size:17px}
+  .hero-sub{font-size:22px;margin-top:32px}
+  .preco-valor{font-size:60px}
+  .hero-compra .btn{width:auto;min-height:58px;padding-inline:34px;font-size:18px}
+  .seguro{font-size:15px}
+  .hero-palco{grid-template-columns:68fr 32fr}
+  .hero-capa{margin-top:6cqw}
+  .palco-lado{display:grid;grid-template-columns:minmax(0,1fr);grid-column:2;grid-row:1;margin-left:-12px;gap:14px;align-content:start}
+  .celular{grid-column:1;grid-row:1;margin:0}
+  .palco-nota{grid-column:1;grid-row:2;margin:0;padding-left:12px;font-size:15px}
+
+  .cab{display:grid;grid-template-columns:5fr 7fr;gap:48px;align-items:end;margin-bottom:44px}
+  .cab h2,.bloco>h2,.dados h2,.creme h2,.compra h2,.duvidas h2{font-size:clamp(56px,5.4vw,80px)}
+  .cab p{margin:0;max-width:48ch;font-size:19px}
+
+  .post-ig{margin:0}
+  .pig-cab,.pig-cont,.pig-pontos,.dica-toque{display:none}
+  .trilho{grid-auto-flow:row;grid-template-columns:repeat(3,1fr);gap:40px 24px;overflow:visible}
+  .trilho .legenda{display:block}
+  .trilho a.abre,.trilho .arte{border-radius:2px}
+  .grade-posts .legenda,.fila-stories .legenda{display:block}
+
+  .grade-posts{grid-template-columns:repeat(4,1fr);gap:24px}
+
+  .fila-stories{grid-auto-flow:row;grid-template-columns:repeat(4,1fr);gap:24px;overflow:visible;margin:0;padding:0}
+
+  .datas li{grid-template-columns:280px 220px 1fr;grid-template-areas:"q m o";column-gap:40px;padding:22px 0}
+  .quando{font-size:34px;align-self:center}
+  .oque{font-size:18px;align-self:center;max-width:52ch}
+  .mini{gap:10px}
+  .mini img{width:80px;height:100px}.mini img.st{width:56px}
+
+  .dados{grid-template-columns:5fr 7fr;gap:72px;align-items:center}
+  .declara{font-size:24px;max-width:32ch}
+  .aqui{font-size:17px;padding:10px 14px 10px 12px}
+
+  .creme-in{padding:120px var(--margem)}
+  .passos{grid-template-columns:1fr 1fr 1.5fr 1fr;gap:44px;margin-top:56px}
+  .passos>li{grid-template-columns:1fr;row-gap:10px;align-content:start}
+  .passos>li::before{grid-row:auto;font-size:72px}
+  .pronta{margin-top:72px;padding:36px 40px;display:grid;grid-template-columns:5fr 7fr;gap:40px;align-items:center}
+  .pronta h3{font-size:44px}
+  .pronta p{margin:0;font-size:19px}
+
+  .compra{grid-template-columns:6fr 6fr;gap:72px;align-items:center}
+  .compra-arte{display:block}
+  .btn-grande{width:auto;padding-inline:40px}
+
+  .duvidas{display:grid;grid-template-columns:4fr 8fr;gap:48px;align-items:start}
+  .lista-duvidas{margin:0}
+
+  .quem{grid-template-columns:4fr 8fr;grid-template-rows:auto 1fr;column-gap:48px;row-gap:32px;align-items:start}
+  .quem h2{grid-column:1;grid-row:1}
+  .quem-foto{grid-column:1;grid-row:2}
+  .quem p{grid-column:2;grid-row:1/3;font-size:28px;line-height:1.4;margin:0;max-width:34ch}
+
+  .luz-seta{top:50%;bottom:auto;transform:translateY(-50%)}
+  .luz-seta:active{transform:translateY(-50%) scale(.95)}
+  .luz-seta.ant{left:24px}.luz-seta.prox{left:auto;right:24px}
+
+  .vit-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.65fr);column-gap:56px;align-items:stretch;padding-top:56px}
+  .vit-hero h1{font-size:clamp(64px,6vw,92px)}
+  .vit-hero .hero-sub{font-size:22px;margin-top:28px}
+  /* 3 capas em escada, da altura do texto: a 1ª começa na linha do rótulo, a 3ª termina na base do botão.
+     Sem sobreposição: vão de 24px entre elas, então nenhuma letra da arte fica cortada pela capa do lado. */
+  .vit-capas{display:block;position:relative;overflow:visible;margin:0;padding:0;min-height:470px;container-type:inline-size}
+  .vit-capas a{--w:min(240px,calc((100cqw - 48px) / 3));position:absolute;width:var(--w)}
+  .vit-capas a:nth-child(1){left:0;top:0}
+  .vit-capas a:nth-child(2){left:calc(50% - var(--w) / 2);top:calc((100% - var(--w) * 1.25) / 2)}
+  .vit-capas a:nth-child(3){right:0;top:calc(100% - var(--w) * 1.25)}
+  .vit-capas span{font-size:16px}
+  .vit-hero .btn{width:auto;min-height:58px;padding-inline:34px;font-size:18px}
+  .vitrine{grid-template-columns:repeat(4,1fr);gap:48px 24px}
+  .vitrine b{font-size:19px}
+  .vit-como{grid-template-columns:repeat(3,1fr);gap:44px;margin-top:48px}
+
+  .eb-capa{width:auto;margin:0}
+  .eb-lista{grid-template-columns:1fr 1fr;column-gap:48px;max-width:none}
+}
+@media (min-width:1200px){.vitrine{grid-template-columns:repeat(5,1fr)}}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 """
 
-HEAD = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title}</title><meta name="description" content="{desc}">
-<meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:image" content="{og}">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{base}estilo.css"></head><body>"""
+# ----------------------------------------------------------------------------------------------
+# JS (barra fixa, contador do carrossel, tela cheia, UTM pro checkout, eventos do pixel)
+# ----------------------------------------------------------------------------------------------
+JS = r"""(function () {
+  var d = document;
+  d.documentElement.classList.add('js');
+
+  // repassa utm_* (e src/sck da Kiwify) da URL do anúncio pro link de checkout
+  var q = new URLSearchParams(location.search), extra = [];
+  ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'sck'].forEach(function (k) {
+    var v = q.get(k); if (v) extra.push([k, v]);
+  });
+  var compra = Array.prototype.slice.call(d.querySelectorAll('a[data-compra]'));
+  compra.forEach(function (a) {
+    if (extra.length) {
+      try { var u = new URL(a.href); extra.forEach(function (p) { if (!u.searchParams.has(p[0])) u.searchParams.set(p[0], p[1]); }); a.href = u.toString(); } catch (e) {}
+    }
+    a.addEventListener('click', function () {
+      if (window.fbq) window.fbq('track', 'InitiateCheckout', { value: parseFloat(a.dataset.valor) || 0, currency: 'BRL' });
+    });
+  });
+
+  // barra fixa: aparece quando o botão do topo sai da tela, some na seção de compra
+  // e some também quando o botão do fim da página está na tela (nunca dois botões de compra juntos)
+  var barra = d.getElementById('barra'), cta = d.getElementById('cta-hero'), fim = d.getElementById('comprar'), fim2 = d.getElementById('comprar-fim');
+  if (barra && cta && fim && 'IntersectionObserver' in window) {
+    var heroFora = false, dentro = { a: false, b: false };
+    var atualiza = function () { barra.classList.toggle('on', heroFora && !dentro.a && !dentro.b); };
+    new IntersectionObserver(function (e) { heroFora = !e[0].isIntersecting && e[0].boundingClientRect.top < 0; atualiza(); }).observe(cta);
+    new IntersectionObserver(function (e) { dentro.a = e[0].isIntersecting; atualiza(); }).observe(fim);
+    if (fim2) new IntersectionObserver(function (e) { dentro.b = e[0].isIntersecting; atualiza(); }).observe(fim2);
+  } else if (barra) { barra.classList.add('on'); }
+
+  // carrossel no celular: contador 1/6 e pontinhos
+  var trilho = d.getElementById('trilho'), num = d.getElementById('pig-n');
+  if (trilho && num) {
+    var pontos = d.querySelectorAll('.pig-pontos i'), ultimo = 0;
+    trilho.addEventListener('scroll', function () {
+      var i = Math.round(trilho.scrollLeft / Math.max(1, trilho.clientWidth));
+      if (i === ultimo) return; ultimo = i;
+      num.textContent = i + 1;
+      for (var k = 0; k < pontos.length; k++) pontos[k].classList.toggle('on', k === i);
+    }, { passive: true });
+  }
+
+  // tela cheia das artes
+  var luz = d.getElementById('luz');
+  if (!luz || !luz.showModal) return;
+  var abre = Array.prototype.slice.call(d.querySelectorAll('main a.abre:not(.hero-capa)'));
+  var capa = d.querySelector('main a.hero-capa');
+  if (capa) capa.addEventListener('click', function (ev) {
+    var alvo = abre.map(function (a) { return a.getAttribute('href'); }).indexOf(capa.getAttribute('href'));
+    if (alvo < 0) return;
+    ev.preventDefault(); mostra(alvo); luz.showModal();
+  });
+  var img = d.getElementById('luz-img'), cap = d.getElementById('luz-cap'), atual = 0;
+  function mostra(i) {
+    atual = (i + abre.length) % abre.length;
+    var a = abre[atual], fonte = a.querySelector('img');
+    img.src = a.getAttribute('href');
+    img.alt = fonte ? fonte.alt : '';
+    cap.textContent = (a.dataset.cap || '') + '  ·  ' + (atual + 1) + ' de ' + abre.length;
+  }
+  abre.forEach(function (a, i) {
+    a.addEventListener('click', function (ev) { ev.preventDefault(); mostra(i); luz.showModal(); });
+  });
+  luz.addEventListener('click', function (ev) {
+    var acao = ev.target.dataset && ev.target.dataset.acao;
+    if (acao === 'fechar' || ev.target === luz) luz.close();
+    if (acao === 'ant') mostra(atual - 1);
+    if (acao === 'prox') mostra(atual + 1);
+  });
+  luz.addEventListener('keydown', function (ev) {
+    if (ev.key === 'ArrowLeft') mostra(atual - 1);
+    if (ev.key === 'ArrowRight') mostra(atual + 1);
+  });
+  var x0 = null;
+  luz.addEventListener('touchstart', function (ev) { x0 = ev.touches[0].clientX; }, { passive: true });
+  luz.addEventListener('touchend', function (ev) {
+    if (x0 === null) return;
+    var dx = ev.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) mostra(atual + (dx < 0 ? 1 : -1));
+  });
+})();
+"""
 
 
-def venda(slug):
-    t = (PACKS / "packs" / slug / "venda.md").read_text()
-    sub = re.search(r"^\*\*(.+?)\*\*", t, re.M)
-    bullets = re.findall(r"^- (.+)$", t, re.M)
-    paras = [l for l in t.split("\n\n") if l.strip() and not l.lstrip().startswith(("#", "-", "**", "Preço"))]
-    return (sub.group(1) if sub else ""), bullets, (paras[0].strip() if paras else "")
+# ----------------------------------------------------------------------------------------------
+# pedaços comuns
+# ----------------------------------------------------------------------------------------------
+def head(title, desc, og, base, view_content=False):
+    pixel = ""
+    if META_PIXEL_ID:
+        pixel = ("<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};"
+                 "if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];"
+                 "s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');"
+                 f"fbq('init','{esc(META_PIXEL_ID)}');fbq('track','PageView');" + ("fbq('track','ViewContent');" if view_content else "") + "</script>")
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>{esc(title)}</title>
+<meta name="description" content="{esc(desc)}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{esc(title)}">
+<meta property="og:description" content="{esc(desc)}">
+<meta property="og:image" content="{esc(og)}">
+<meta name="theme-color" content="#16110e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{base}estilo.css">
+{pixel}</head>
+"""
 
 
-def botao(slug, txt="Quero o pack por R$ 27"):
-    url = links.get(slug)
-    return f'<a class="btn" href="{html.escape(url)}">{txt}</a>' if url else f'<a class="btn off" aria-disabled="true">Em breve</a>'
+def topo(base, slug=None, preco="R$ 27", url=None):
+    if slug is None:
+        direita = ""
+    elif url:
+        direita = f'<a class="topo-comprar" href="{esc(url)}" data-compra data-valor="{valor(preco)}">Comprar por {preco}</a>'
+    else:
+        direita = '<span class="topo-comprar off">Em breve</span>'
+    return f"""<header class="topo">
+  <div class="topo-in">
+    <a class="marca" href="{base or './'}">Packs de Fim de Ano</a>
+    {direita}
+  </div>
+</header>
+"""
+
+
+def valor(preco):
+    m = re.search(r"[\d.,]+", preco or "")
+    return m.group(0).replace(".", "").replace(",", ".") if m else "0"
+
+
+def botao(url, txt, preco, cls="btn", ident=""):
+    idattr = f' id="{ident}"' if ident else ""
+    if url:
+        return f'<a class="{cls}"{idattr} href="{esc(url)}" data-compra data-valor="{valor(preco)}">{txt}</a>'
+    return f'<span class="{cls} off"{idattr} aria-disabled="true">Em breve</span>'
+
+
+def barra(url, preco, linha, txt):
+    if not url:
+        return ""
+    return f"""<div class="barra" id="barra">
+  <p><b>{preco}</b><span>{linha}</span></p>
+  <a class="btn" href="{esc(url)}" data-compra data-valor="{valor(preco)}">{txt}</a>
+</div>
+"""
+
+
+LUZ = """<dialog class="luz" id="luz" aria-label="Arte em tela cheia">
+  <figure>
+    <img id="luz-img" src="data:," alt="">
+    <figcaption id="luz-cap"></figcaption>
+  </figure>
+  <button class="luz-fechar" type="button" data-acao="fechar" aria-label="Fechar">Fechar</button>
+  <button class="luz-seta ant" type="button" data-acao="ant" aria-label="Arte anterior">‹</button>
+  <button class="luz-seta prox" type="button" data-acao="prox" aria-label="Próxima arte">›</button>
+</dialog>
+"""
+
+
+def quem_fez(base, texto):
+    foto = ""
+    if (AQUI / QUEM_FOTO).exists():
+        foto = (f'<figure class="quem-foto"><img src="{base}{QUEM_FOTO}" width="360" height="450" alt="Foto do Guilherme, de camiseta preta, sorrindo" loading="lazy">'
+                f'<figcaption><b>Guilherme</b><span class="quem-local">Designer · Timóteo, MG</span><a href="https://instagram.com/{QUEM_IG}" target="_blank" rel="noopener">@{QUEM_IG}</a></figcaption></figure>')
+    return f"""<section class="bloco quem" aria-labelledby="t-quem">
+  <h2 id="t-quem">Quem fez</h2>
+  {foto}
+  <p>{texto}</p>
+</section>
+"""
+
+
+def nome_pack(slug, pack):
+    return NOMES.get(slug) or pack.get("titulo", slug).split("·")[-1].strip()
+
+
+def rodape(base, frase, extra="", link=("", "Ver os packs de todas as profissões"), cta=""):
+    """cta: botão de compra logo abaixo da frase final (quem lê até o fim tem onde comprar sem voltar pro topo)."""
+    return f"""<footer class="rodape">
+  <p class="rodape-nome">{frase}</p>
+  {cta}
+  <div class="rodape-linha">
+    <a href="{link[0] or base or './'}">{link[1]}</a>
+    <span>{extra}Feito por Guilherme, designer em Timóteo, MG.</span>
+  </div>
+</footer>
+"""
+
+
+# ----------------------------------------------------------------------------------------------
+# leitura do venda.md (dois formatos convivem: "**subtítulo**" ou subtítulo solto + "## Descrição")
+# ----------------------------------------------------------------------------------------------
+def md_inline(s):
+    s = esc(s)
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+
+
+def ler_venda(path):
+    t = path.read_text()
+    titulo, secoes, atual = "", {"_topo": []}, "_topo"
+    for l in t.splitlines():
+        if l.startswith("# ") and not titulo:
+            titulo = l[2:].strip(); continue
+        if l.startswith("## "):
+            atual = l[3:].strip().lower(); secoes.setdefault(atual, []); continue
+        secoes.setdefault(atual, []).append(l)
+
+    def paras(linhas):
+        blocos, cur = [], []
+        for l in linhas + [""]:
+            if l.strip():
+                cur.append(l.strip())
+            elif cur:
+                blocos.append(" ".join(cur)); cur = []
+        return blocos
+
+    def texto_livre(b):
+        return not b.startswith(("-", "#")) and not re.match(r"^\*{0,2}Pre[çc]o", b)
+
+    sub = ""
+    for b in paras(secoes["_topo"]):
+        if b.startswith("-") or re.match(r"^\*{0,2}Pre[çc]o", b):
+            continue
+        sub = re.sub(r"^\*\*Subt[íi]tulo:\*\*\s*", "", b).strip()
+        sub = re.sub(r"^\*\*(.+)\*\*$", r"\1", sub).strip()
+        break
+    bullets = []
+    for nome, linhas in secoes.items():
+        if "entrega" in nome:
+            continue
+        bullets += [l[2:].strip() for l in linhas if l.startswith("- ")]
+    desc = ""
+    for nome in ("descrição", "descricao"):
+        if secoes.get(nome):
+            ps = [p for p in paras(secoes[nome]) if texto_livre(p)]
+            desc = ps[0] if ps else ""
+    if not desc:
+        for nome, linhas in secoes.items():
+            if "entrega" in nome:
+                continue
+            ps = [p for p in paras(linhas) if texto_livre(p) and not p.startswith("**") and p != sub]
+            if ps:
+                desc = ps[0]; break
+    # a seção "Como funciona a entrega" do venda.md fala do formulário da versão personalizada, que é outro
+    # produto (upsell de R$ 47): o site não usa esse texto.
+    preco = re.search(r"R\$\s*[\d.,]*\d", t)
+    return {"titulo": titulo, "sub": sub, "bullets": bullets, "desc": desc,
+            "preco": preco.group(0).replace("R$", "R$ ").replace("  ", " ") if preco else ""}
+
+
+def frases(txt, n):
+    partes = re.split(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ\"“])", txt.strip())
+    return " ".join(partes[:n])
+
+
+def cap1(s):
+    return s[:1].upper() + s[1:] if s else s
+
+
+def ponto(s):
+    s = s.strip()
+    return s if s.endswith((".", "!", "?")) else s + "."
+
+
+# ----------------------------------------------------------------------------------------------
+# textos de cada arte (legenda e alt), a partir do pack.json
+# ----------------------------------------------------------------------------------------------
+def limpa(s, pack):
+    s = str(s or "")
+    s = s.replace("<br>", " · ")
+    s = re.sub(r"<[^>]+>", "", s)
+    padrao = {"cidade": "Sua cidade · UF", "negocio": pack.get("profissional", ""), "tel": pack.get("tel", "(00) 00000-0000")}
+    s = re.sub(r"\{(\w+)\}", lambda m: str(pack.get(m.group(1)) or padrao.get(m.group(1), "")), s)
+    s = s.replace("[", "").replace("]", "")
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def titulo_arte(d, pack, longo=True):
+    if not d.get("fino") and d.get("canto") and d.get("tipo") == "frase":
+        return f'{limpa(d.get("canto"), pack)} {limpa(d.get("serif"), pack)}'
+    partes = [limpa(d.get("fino"), pack), limpa(d.get("serif"), pack)]
+    f2 = limpa(d.get("fino2"), pack)
+    if d.get("tipo") == "fim":
+        f2 = re.split(r"(?<=[.!?])\s", f2)[0] if f2 else ""
+        cab = " ".join(p for p in [limpa(d.get("fino"), pack), limpa(d.get("serif"), pack)] if p)
+        if f2 and f2[:1].isupper() and not cab.endswith((".", "!", "?")):
+            cab += "."
+        return " ".join(p for p in [cab, f2] if p)
+    if longo and f2 and len(f2) <= 26:
+        partes.append(f2)
+    return " ".join(p for p in partes if p)
+
+
+def alt_arte(d, pack, tipo):
+    t = titulo_arte(d, pack)
+    extra = limpa(d.get("apoio"), pack)
+    if d.get("itens"):
+        extra = " ".join(limpa(a, pack) + " " + limpa(b, pack) for a, b in d["itens"])
+    if d.get("tipo") == "fim":
+        extra = limpa(d.get("fino2"), pack)
+    alt = f"{tipo}: {t}"
+    if extra and extra not in t:
+        alt += f". {extra}"
+    return ponto(alt)
+
+
+# ----------------------------------------------------------------------------------------------
+# página de cada pack
+# ----------------------------------------------------------------------------------------------
+NORMA = re.compile(r"(Resolução [A-Z]{2,4} [\d.]+/\d{4}|Provimento [\d.]+/\d{4} da OAB|Código de Ética do [A-Z]{2,4})")
+REGRA_RX = re.compile(r"conselho|\bCFN\b|sem promessa|promessa de|sensacionalismo|antes e depois|sem preço|chamada de contratação", re.I)
+REGRA = type("R", (), {"search": staticmethod(lambda b: NORMA.search(b) or REGRA_RX.search(b))})
+
+
+def contar_paginas(pdf):
+    if not pdf.exists():
+        return None
+    return len(re.findall(rb"/Type\s*/Page[^s]", pdf.read_bytes())) or None
+
+
+def sigla_registro(reg):
+    if not reg:
+        return ""
+    m = re.match(r"[A-Za-zÀ-ú]+", reg)
+    s = m.group(0) if m else ""
+    return "registro" if s.lower() == "registro" else s
 
 
 def pagina_pack(slug, pack):
-    nicho = pack.get("titulo", slug).split("·")[-1].strip()
-    sub, bullets, para = venda(slug)
-    img = lambda n: f"../img/{slug}/{n}.jpg"
-    car = "".join(f'<img src="{img(d["id"])}" alt="Tela {i} do carrossel" loading="lazy">' for i, d in enumerate(pack["carrossel"], 1))
-    posts = "".join(f'<img src="{img(d["id"])}" alt="Post" loading="lazy">' for d in pack["posts"])
-    sts = "".join(f'<img src="{img(d["id"])}" alt="Story" loading="lazy">' for d in pack["stories"])
-    lista = "".join(f"<li>{html.escape(b)}</li>" for b in bullets)
-    return HEAD.format(title=f"Pack de Fim de Ano · {nicho}", desc=html.escape(sub), og=f"../img/{slug}/capa-kiwify.jpg", base="../") + f"""
-<div class="wrap"><header class="top"><a href="../">Packs de Fim de Ano</a><span>R$ 27</span></header>
-<div class="hero"><div><span class="olho">Pack de fim de ano</span><h1>{html.escape(nicho)}</h1>
-<p class="sub">{html.escape(sub)}</p><div class="preco"><b>R$ 27</b><span>pagamento único · acesso imediato</span></div>
-{botao(slug)}<p class="seg">Compra segura pela Kiwify. Você recebe o acesso por email na hora.</p></div>
-<div class="leque" aria-hidden="true"><img class="a" src="{img('c2')}" alt=""><img class="b" src="{img('c1')}" alt=""><img class="c" src="{img('c6')}" alt=""></div></div></div>
-<section><div class="wrap"><h2>O carrossel</h2><p class="desc">6 telas pra postar em dezembro, com conteúdo útil pro seu cliente e o convite pra janeiro no final.</p><div class="grade g6">{car}</div></div></section>
-<section><div class="wrap"><h2>Posts e stories</h2><p class="desc">4 posts de feed e 4 stories com espaço pros stickers de pergunta e enquete.</p>
-<div class="grade g4">{posts}</div><div class="grade g4" style="margin-top:12px">{sts}</div></div></section>
-<section><div class="wrap"><h2>O que vem no pack</h2><p class="desc">{html.escape(para)}</p><ul class="lista">{lista}</ul></div></section>
-<section><div class="wrap"><h2>Como funciona</h2><div class="passos">
-<div class="passo"><b>1</b>Você compra pela Kiwify e recebe por email o login da área de membros.</div>
-<div class="passo"><b>2</b>Lá você baixa as 14 artes em PNG e os PDFs pra editar no Canva.</div>
-<div class="passo"><b>3</b>Troca nome, registro, @ e foto, e posta. Se preferir, pede a versão já personalizada.</div></div></div></section>
-<section><div class="wrap"><h2>Dúvidas</h2>
-<details><summary>Preciso saber design?</summary><p>Não. No Canva é só clicar no texto e trocar. As artes já vêm no tamanho certo do Instagram.</p></details>
-<details><summary>As fotos são minhas?</summary><p>As fotos de exemplo são de banco de imagem com licença livre. O ideal é trocar por fotos suas pra ficar com a cara do seu negócio.</p></details>
-<details><summary>Como recebo?</summary><p>Na hora, por email, com o acesso à área de membros da Kiwify.</p></details>
-<details><summary>E se eu não gostar?</summary><p>Você tem 7 dias de garantia pela Kiwify.</p></details></div></section>
-<section class="final"><div class="wrap"><h2>Seu dezembro pronto por R$ 27</h2>{botao(slug)}</div></section>
-<footer><div class="wrap">Packs de Fim de Ano · Fotos de exemplo: Unsplash (licença livre)</div></footer></body></html>"""
+    v = ler_venda(PACKS / "packs" / slug / "venda.md")
+    curto = nome_pack(slug, pack)
+    url = links.get(slug)
+    preco = PRECO
+    base = "../"
+    im = lambda i: f"{base}img/{slug}/{i}.jpg"
+    car, posts, sts = pack["carrossel"], pack["posts"], pack["stories"]
+    total = len(car) + len(posts) + len(sts)
+    reg = pack.get("registro") or ""
+    sigla = sigla_registro(reg)
+    arroba = (pack.get("arroba") or "@seuperfil").lstrip("@")
+    mono = pack.get("monograma") or "AE"
+    prof = pack.get("profissional") or ""
+    profissao = pack.get("profissao") or ""
+    bl = v["bullets"]
+    achar = lambda rx: next((b for b in bl if re.match(rx, b, re.I)), "")
+
+    # textos por nicho, a partir do venda.md
+    b_car = achar(r"(1 carrossel|carrossel)")
+    b_posts = achar(r"4 posts")
+    b_sts = achar(r"4 stories")
+    sem_prefixo = lambda b: cap1(re.sub(r"^\d+\s+\w+:\s*|^[^:]+:\s*", "", b, count=1)) if ":" in b else cap1(b)
+    regras = [b for b in bl if REGRA.search(b)]
+    campos = achar(r"(Espaço|Campo)")
+    norma_m = NORMA.search(" ".join(regras))
+    norma = norma_m.group(1) if norma_m else ""
+    acr = re.search(r"\b(CFO|OAB|CFM|CFP|CFN)\b", " ".join(regras))
+    lugar_m = re.search(r"Instagram d[oa] (consultório|escritório|estúdio|salão|clínica)", v["sub"] + " " + v["desc"])
+
+    # hero: celular com o perfil montado, capa do carrossel ao lado
+    destaques = []
+    for d in sts:
+        nome = {"s1": "Perguntas", "s2": "Enquete"}.get(d["id"][:2]) or (d.get("canto") or "Stories")
+        destaques.append(f'<span><img src="{im(d["id"])}" width="720" height="1280" alt="" loading="lazy"><i>{esc(nome)}</i></span>')
+    ids = {d["id"]: d for d in posts + car}
+    p_ids = [d["id"] for d in posts]
+    ordem = [p_ids[3], p_ids[2], p_ids[0], p_ids[1], "c1", "c6", "c4", "c5", "c2"]
+    grade = "".join(
+        (f'<span class="ig-multi"><img src="{im(i)}" width="720" height="900" alt="" loading="lazy"></span>' if i == "c1"
+         else f'<img src="{im(i)}" width="720" height="900" alt="" loading="lazy">') for i in ordem if i in ids)
+    linha_reg = f"<span>{esc(reg)}</span>" if reg else (f"<span>{esc(limpa(pack.get('cidade'), pack))}</span>" if pack.get("cidade") else "")
+    troca = f"Nome, {sigla} e @ você troca pelos seus." if sigla else "Nome, @ e telefone você troca pelos seus."
+    c1 = car[0]
+
+    # carrossel
+    trilho = "".join(
+        f'<li><a class="abre" href="{im(d["id"])}" data-cap="Carrossel, tela {n}: {esc(titulo_arte(d, pack))}">'
+        f'<img class="arte" src="{im(d["id"])}" width="720" height="900" alt="{esc(alt_arte(d, pack, f"Tela {n} do carrossel"))}" loading="lazy"></a>'
+        f'<span class="legenda">{"Capa: " if n == 1 else ""}{esc(titulo_arte(d, pack))}</span></li>'
+        for n, d in enumerate(car, 1))
+    pontos = '<i class="on"></i>' + "<i></i>" * (len(car) - 1)
+    desc_car = ponto(sem_prefixo(b_car)) if b_car else "Conteúdo útil pro seu cliente salvar."
+    desc_car = re.sub(r"^(1 carrossel|carrossel) de \d+ telas\s*(com|sobre|de)?\s*", "", desc_car, flags=re.I)
+    desc_car = cap1(desc_car)
+
+    grade_posts = "".join(
+        f'<li><a class="abre" href="{im(d["id"])}" data-cap="Post: {esc(titulo_arte(d, pack, False))}">'
+        f'<img class="arte" src="{im(d["id"])}" width="720" height="900" alt="{esc(alt_arte(d, pack, "Post"))}" loading="lazy"></a>'
+        f'<span class="legenda">{esc(titulo_arte(d, pack, False))}</span></li>' for d in posts)
+    fila = "".join(
+        f'<li><a class="abre" href="{im(d["id"])}" data-cap="Story: {esc(titulo_arte(d, pack, False))}">'
+        f'<img class="arte" src="{im(d["id"])}" width="720" height="1280" alt="{esc(alt_arte(d, pack, "Story"))}" loading="lazy"></a>'
+        f'<span class="legenda">{esc(titulo_arte(d, pack, False))}</span></li>' for d in sts)
+    com_caixa = sum(1 for d in sts if d.get("caixa"))
+    desc_sts = ponto(sem_prefixo(b_sts)) if b_sts else ""
+    if com_caixa >= 2:
+        desc_sts += f" {'Dois deles têm' if com_caixa == 2 else f'{com_caixa} deles têm'} o espaço marcado pra você colar a caixinha de perguntas e a enquete do Instagram."
+
+    # quando postar
+    p2, s3, s4 = posts[1], sts[2], sts[3]
+    aviso_tipo = p2["id"].split("-", 1)[-1]
+    def mini(ids_tipos):
+        return "".join(f'<img class="arte{" st" if st else ""}" src="{im(i)}" width="720" height="{1280 if st else 900}" alt="" loading="lazy">' for i, st in ids_tipos)
+    tit = lambda d: f"“{titulo_arte(d, pack, False).rstrip('.')}”"
+    s4_natal = "natal" in s4["id"]
+    # a última tela do carrossel só entra no calendário quando o assunto dela casa com a linha:
+    # convite pra janeiro vai na volta, aviso de recesso vai antes de fechar; as outras ficam só no carrossel
+    c6 = car[5]
+    c6_txt = titulo_arte(c6, pack, False)
+    c6_vai = "janeiro" if re.search(r"janeiro", c6_txt, re.I) else ("recesso" if re.search(r"recesso|prazos", c6_txt, re.I) else "")
+    mesmo = titulo_arte(p2, pack, False).lower() == titulo_arte(s3, pack, False).lower()
+    linha2 = f"{tit(p2)} no feed e nos stories" if mesmo else f"{tit(p2)} no feed e {tit(s3)} nos stories"
+    c6_curto = re.split(r"(?<=[.!?])\s", c6_txt)[0].rstrip(".")
+    linha2 += f", junto com a tela “{c6_curto}” do carrossel." if c6_vai == "recesso" else "."
+    linha6 = f"{tit(posts[3])} no feed" + (f" e o convite da última tela do carrossel, {tit(c6)}." if c6_vai == "janeiro" else ".")
+    datas = [
+        ("Começo de dezembro", f"O carrossel {tit(c1)}, pra abrir o mês.", [("c1", 0), ("c2", 0)]),
+        ("Antes de fechar" if aviso_tipo == "recesso" else "Na primeira quinzena", linha2,
+         [(p2["id"], 0), (s3["id"], 1)] + ([("c6", 0)] if c6_vai == "recesso" else [])),
+        ("Semana do Natal", "Caixinha de perguntas e enquete nos stories.", [(sts[0]["id"], 1), (sts[1]["id"], 1)]),
+        ("24 e 25 de dezembro", f"{tit(posts[0])} no feed" + (f" e {tit(s4)} nos stories." if s4_natal else "."),
+         [(posts[0]["id"], 0)] + ([(s4["id"], 1)] if s4_natal else [])),
+        ("Virada do ano", f"{tit(posts[2])} no feed" + ("." if s4_natal else f" e {tit(s4)} nos stories."),
+         [(posts[2]["id"], 0)] + ([] if s4_natal else [(s4["id"], 1)])),
+        ("Na volta, em janeiro", linha6, [(posts[3]["id"], 0)] + ([("c6", 0)] if c6_vai == "janeiro" else [])),
+    ]
+    # conferência: toda miniatura de uma linha tem que estar citada na frase dessa linha
+    todas = {d["id"]: d for d in car + posts + sts}
+    for q, o, m in datas:
+        for i, _ in m:
+            if i == "c2" and "carrossel" in o:
+                continue
+            chave = {"s1": "perguntas", "s2": "enquete"}.get(i[:2]) if i.startswith(("s1", "s2")) else (c6_curto if i == "c6" else titulo_arte(todas[i], pack, False).rstrip("."))
+            if chave.lower() not in o.lower():
+                AVISOS.append(f"{slug}: miniatura {i} na linha '{q}' sem citação na frase: {o}")
+    lis_datas = "".join(f'<li><p class="quando">{q}</p><div class="mini" aria-hidden="true">{mini(m)}</div><p class="oque">{esc(o)}</p></li>' for q, o, m in datas)
+    intro_datas = frases(v["desc"], 1) or "Uma sugestão de ordem pro perfil não ficar parado no fim de ano."
+
+    # bloco dos dados / regras do conselho
+    conselho = bool(regras) and bool(reg or norma or acr)
+    if conselho:
+        if acr:
+            h_dados = f"Escrito dentro das regras {'da' if acr.group(1) == 'OAB' else 'do'} {acr.group(1)}"
+        else:
+            h_dados = "Escrito dentro das regras do conselho"
+        declara = " ".join(ponto(cap1(b)) for b in ([campos] if campos and campos not in regras else []) + regras)
+        aviso = "Se você mudar os textos, confira se continuam dentro da regra."
+    else:
+        h_dados = "Seus dados no lugar certo"
+        declara = " ".join(ponto(cap1(b)) for b in ([campos] if campos else []) + regras) or "Nome, @ e telefone ficam em campos fáceis de trocar no Canva."
+        aviso = "O texto de cada arte já está pronto. Você só troca os dados e as datas."
+    sig = limpa(car[5].get("assinatura"), pack) if car[5].get("assinatura") else f"{prof} · {profissao}"
+    maior = max(len(x) for x in sig.split(" · ", 1)) if sig else 20
+    linhas_sig = [limpa(x, pack) for x in str(car[5].get("assinatura") or "").split("<br>")]
+    maior = max((len(x) for x in linhas_sig), default=20)
+    aqui_left = min(79, round((112 + maior * 8.8) / 720 * 100 + 6))
+    o_que = f"Nome, {sigla} e @" if sigla else "Nome e @"
+    cap_dados = f"{o_que} entram aqui, na última tela do carrossel. Nas outras artes eles ficam no rodapé."
+
+    # pasta que chega no e-mail
+    pg_posts = contar_paginas(PACKS / "saida" / slug / "canva-posts.pdf")
+    pg_sts = contar_paginas(PACKS / "saida" / slug / "canva-stories.pdf")
+    pasta = [("carrossel", f"{len(car)} PNG · 1080×1350"), ("posts", f"{len(posts)} PNG · 1080×1350"), ("stories", f"{len(sts)} PNG · 1080×1920")]
+    if pg_posts: pasta.append(("canva-posts.pdf", f"{pg_posts} páginas"))
+    if pg_sts: pasta.append(("canva-stories.pdf", f"{pg_sts} páginas"))
+    lis_pasta = "".join(f"<li><code>{n}</code><small>{q}</small></li>" for n, q in pasta)
+
+    # extras do checkout (só se o pack tiver)
+    meus = [b for b in bumps if b.get("bump_de") == slug]
+    def nome_bump(b):
+        if b["slug"].startswith("whatsapp"): return "mensagens prontas de WhatsApp"
+        if b["slug"].startswith("adesivos"): return "adesivos pros stories"
+        return b["nome"]
+    def reais(c): return f"R${NB}" + f"{int(c) / 100:.2f}".replace(".", ",").replace(",00", "")
+    extras = ""
+    if meus:
+        partes = [f"{nome_bump(b)} ({reais(b['preco_bump'])})" for b in meus]
+        extras = " e ".join([", ".join(partes[:-1]), partes[-1]] if len(partes) > 1 else partes)
+    garantia_extra = f"<p><b>Extras opcionais no pagamento:</b> {extras}. Só leva se quiser.</p>" if extras else ""
+    precos_extras = " e ".join(reais(b["preco_bump"]) for b in meus)
+    abre_duvidas = (f'<p class="abre-duvidas">{"Os extras" if len(meus) > 1 else "O extra"} de {precos_extras} que {"aparecem" if len(meus) > 1 else "aparece"} no pagamento {"são opcionais" if len(meus) > 1 else "é opcional"}. O pack sai por {PRECO} do mesmo jeito.</p>' if meus else "")
+
+    # versão personalizada (upsell de R$ 47 oferecido logo depois do pagamento): só aparece quando existir na Kiwify,
+    # com a chave "personalizado" no links.json
+    tem_personalizado = bool(links.get("personalizado"))
+    pronta = (f"""<div class="pronta">
+      <h3>Quer que eu coloque seus dados?</h3>
+      <p>Versão personalizada por R${NB}47, oferecida logo depois do pagamento. Chega em até 24{NB}h depois que você mandar os dados.</p>
+    </div>""" if tem_personalizado else "")
+    ou_personalizado = " ou pegue a versão personalizada, oferecida logo depois do pagamento" if tem_personalizado else ""
+    exemplo = ", ".join(x for x in [prof, reg, "@" + arroba] if x)
+    duv_regra = ""
+    if conselho:
+        regra_txt = " ".join(ponto(cap1(b)) for b in regras)
+        duv_regra = f"""<details><summary>Posso ter problema com o conselho?</summary><p>Os textos foram escritos pensando nas regras de publicidade da sua profissão. {md_inline(regra_txt)} Se você mudar os textos, confira se continuam dentro da regra.</p></details>"""
+    lugar = lugar_m.group(1) if lugar_m else ""
+    frase_fim = f"Boas festas pro seu {lugar}." if lugar and lugar != "clínica" else ("Boas festas pra sua clínica." if lugar else "Boas festas, e até janeiro.")
+    # o lugar no título casa a página com o anúncio de cada nicho (sempre em até 2 linhas)
+    h1 = f"O dezembro {'da' if lugar == 'clínica' else 'do'} {lugar}, pronto." if lugar else "Seu feed de dezembro, pronto."
+    titulo_pag = v["titulo"] or f"Pack de Fim de Ano · {curto}"
+    desc_meta = f"{v['sub']} {PRECO}, edite no Canva ou baixe em PNG."
+
+    return head(titulo_pag, desc_meta, f"{SITE}img/{slug}/capa-kiwify.jpg", base, view_content=True) + f"""<body class="com-barra">
+<a class="pular" href="#artes">Pular para as artes</a>
+{topo(base, slug, preco, url)}
+<main>
+
+<section class="hero" aria-labelledby="titulo">
+  <div class="hero-texto">
+    <p class="rotulo">Pack de fim de ano pra {esc(curto[:1].lower() + curto[1:])}</p>
+    <h1 id="titulo"{' class="longo"' if len(h1) > 30 else ''}>{esc(h1)}</h1>
+    <p class="hero-sub">{md_inline(v['sub'])}</p>
+  </div>
+  <div class="hero-compra">
+    <span class="preco-valor">{PRECO}</span>
+    {botao(url, "Comprar o pack", preco, ident="cta-hero")}
+    <p class="seguro">{CONFIA}</p>
+  </div>
+  <div class="hero-palco">
+    <a class="hero-capa abre" href="{im('c1')}" data-cap="Carrossel, tela 1: {esc(titulo_arte(c1, pack))}">
+      <img class="arte" src="{im('c1')}" width="720" height="900" alt="{esc(alt_arte(c1, pack, 'Capa do carrossel'))}" fetchpriority="high">
+    </a>
+    <div class="palco-lado">
+    <figure class="celular" aria-label="Exemplo de perfil do Instagram com as artes do pack no feed">
+      <div class="cel-tela">
+        <div class="cel-status" aria-hidden="true"><span>9:41</span><span class="cel-ilha"></span><span class="cel-bat"></span></div>
+        <div class="ig-topo"><b>{esc(arroba)}</b></div>
+        <div class="ig-perfil">
+          <span class="ig-avatar" aria-hidden="true">{esc(mono)}</span>
+          <div class="ig-nome"><b>{esc(prof)}</b><span>{esc(profissao)}</span>{linha_reg}</div>
+        </div>
+        <div class="ig-botoes" aria-hidden="true"><span>Seguir</span><span>Mensagem</span></div>
+        <div class="ig-destaques" aria-hidden="true">{''.join(destaques)}</div>
+        <div class="ig-grade">{grade}</div>
+      </div>
+    </figure>
+    <p class="palco-nota">Perfil de exemplo. {troca}</p>
+    </div>
+  </div>
+</section>
+
+<section class="bloco carrossel" id="artes" aria-labelledby="t-carrossel">
+  <div class="cab">
+    <h2 id="t-carrossel">O carrossel de {len(car)} telas</h2>
+    <p>{md_inline(desc_car)}</p>
+  </div>
+  <div class="post-ig">
+    <div class="pig-cab" aria-hidden="true"><span class="pig-av">{esc(mono)}</span><b>{esc(arroba)}</b><span class="pig-mais">•••</span></div>
+    <div class="pig-palco">
+      <ol class="trilho" id="trilho" aria-label="Telas do carrossel">{trilho}</ol>
+      <span class="pig-cont" aria-hidden="true"><span id="pig-n">1</span>/{len(car)}</span>
+    </div>
+    <div class="pig-pontos" aria-hidden="true">{pontos}</div>
+  </div>
+  <p class="dica-toque">Arraste pro lado. Toque numa arte pra ver em tela cheia.</p>
+</section>
+
+<section class="bloco posts" aria-labelledby="t-posts">
+  <div class="cab">
+    <h2 id="t-posts">{len(posts)} posts pro feed</h2>
+    <p>{md_inline(ponto(sem_prefixo(b_posts)) if b_posts else "")} Formato 1080×1350, que aparece inteiro no feed.</p>
+  </div>
+  <ul class="grade-posts">{grade_posts}</ul>
+</section>
+
+<section class="bloco stories" aria-labelledby="t-stories">
+  <div class="cab">
+    <h2 id="t-stories">{len(sts)} stories</h2>
+    <p>{md_inline(desc_sts)}</p>
+  </div>
+  <ul class="fila-stories">{fila}</ul>
+</section>
+
+<section class="bloco agenda" aria-labelledby="t-agenda">
+  <div class="cab">
+    <h2 id="t-agenda">Quando postar cada uma</h2>
+    <p>{md_inline(intro_datas)}</p>
+  </div>
+  <ol class="datas">{lis_datas}</ol>
+</section>
+
+<section class="bloco dados" aria-labelledby="t-dados">
+  <div class="dados-texto">
+    <h2 id="t-dados">{esc(h_dados)}</h2>
+    <p class="declara">{md_inline(declara)}</p>
+    <p class="aviso">{aviso}</p>
+  </div>
+  <figure class="dados-prova">
+    <div class="recorte"><img class="arte" src="{im('c6')}" width="720" height="900" alt="Detalhe da última tela do carrossel: {esc(sig)}" loading="lazy"><span class="aqui" style="left:{aqui_left}%">Aqui</span></div>
+    <figcaption>{cap_dados}</figcaption>
+  </figure>
+</section>
+
+<section class="creme" aria-labelledby="t-como">
+  <div class="creme-in">
+    <h2 id="t-como">Como você recebe</h2>
+    <ol class="passos">
+      <li><b>Paga na Kiwify</b><span>Pix, cartão ou boleto. A Kiwify processa o pagamento e guarda os arquivos.</span></li>
+      <li><b>Recebe o acesso por e-mail</b><span>Com o login da área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa.</span></li>
+      <li><b>Baixa a pasta</b><ul class="pasta">{lis_pasta}</ul></li>
+      <li><b>Troca seus dados e posta</b><span>No Canva você troca nome, @, telefone, datas e, se quiser, as fotos de exemplo (banco de imagem com licença livre).</span></li>
+    </ol>
+    {pronta}
+  </div>
+</section>
+
+<section class="bloco compra" id="comprar" aria-labelledby="t-compra">
+  <div class="compra-arte" aria-hidden="true"><img class="arte" src="{im('c6')}" width="720" height="900" alt="" loading="lazy"></div>
+  <div class="compra-texto">
+    <h2 id="t-compra">Seu dezembro pronto por {PRECO}</h2>
+    <ul class="leva">
+      <li>Carrossel de {len(car)} telas</li>
+      <li>{len(posts)} posts de feed</li>
+      <li>{len(sts)} stories</li>
+      <li>PNG em alta e PDF pro Canva</li>
+    </ul>
+    {botao(url, f"Comprar o pack por {PRECO}", preco, cls="btn btn-grande")}
+    <div class="garantias">
+      <p><b>{GARANTIA}.</b> Se não gostar, pede o reembolso na Kiwify dentro de 7{NB}dias e recebe o dinheiro de volta.</p>
+      <p><b>Pagamento seguro.</b> Pix, cartão ou boleto, processado pela Kiwify.</p>
+      {garantia_extra}
+    </div>
+  </div>
+</section>
+
+<section class="bloco duvidas" aria-labelledby="t-duvidas">
+  <div>
+    <h2 id="t-duvidas">Dúvidas</h2>
+    {abre_duvidas}
+  </div>
+  <div class="lista-duvidas">
+    <details><summary>Preciso saber design?</summary><p>Não. No Canva você clica no texto e troca o nome, o @, o telefone e as datas. O resto já está pronto.</p></details>
+    <details><summary>Como eu recebo?</summary><p>Assim que o pagamento é aprovado, chega um e-mail da Kiwify com o acesso à área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa, o que pode levar até 3 dias úteis.</p></details>
+    <details><summary>Os PNGs já vêm com os meus dados?</summary><p>Não. Eles vêm com dados de exemplo ({esc(exemplo)}). Pra sair com os seus, edite os PDFs no Canva{ou_personalizado}.</p></details>
+    <details><summary>As fotos são minhas?</summary><p>As fotos de exemplo são de banco de imagem com licença livre (Unsplash). Ficam bonitas como estão, mas com fotos suas o perfil fica com a sua cara.</p></details>
+    {duv_regra}
+    <details><summary>E se eu não gostar?</summary><p>Você tem {GARANTIA}. Pede o reembolso pela Kiwify dentro desse prazo e o dinheiro volta.</p></details>
+    <details><summary>Até quando dá pra usar?</summary><p>As artes são pro período de 1º de dezembro até a volta em janeiro. O post de ano novo está com 2027.</p></details>
+  </div>
+</section>
+
+{quem_fez(base, "Faço artes de Instagram pra consultórios e negócios locais, e montei este pack com o que todo perfil precisa no fim de ano: conteúdo útil, o aviso de recesso ou de horário e um convite pra janeiro.")}
+</main>
+{rodape(base, frase_fim, "Fotos de exemplo: Unsplash, licença livre. ", cta=botao(url, f"Comprar o pack por {PRECO}", preco, cls="btn btn-grande", ident="comprar-fim"))}
+{barra(url, PRECO, GARANTIA, "Comprar o pack")}
+{LUZ}<script src="{base}site.js" defer></script>
+</body>
+</html>
+"""
 
 
+# ----------------------------------------------------------------------------------------------
+# e-books e kits
+# ----------------------------------------------------------------------------------------------
+def copia_imagem(src, dst, max_lado=None):
+    """Copia; se for prévia grande, converte pra JPG menor com o sips do Mac (cai pra cópia simples)."""
+    if not src.exists():
+        return False
+    if max_lado and dst.suffix == ".jpg":
+        try:
+            subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "80", "-Z", str(max_lado), str(src), "--out", str(dst)],
+                           check=True, capture_output=True)
+            return True
+        except Exception:
+            dst = dst.with_suffix(".png")
+    shutil.copy(src, dst)
+    return True
+
+
+# resumo curto de cada e-book (no máximo 3 linhas no celular), tirado do venda.md; os detalhes ficam na lista
+RESUMO_EBOOK = {
+    "2027-no-controle": "Em 30 dias você fica sabendo quanto ganha, quanto gasta e o que fazer com o que sobra. São 39 páginas em PDF.",
+    "ceia-sem-stress": "A ceia dividida em três dias: no 22 você compra, no 23 adianta quase tudo e no 24 só assa e serve. São 31 páginas em PDF.",
+    "kit-metas-2027": "Você escolhe as metas, imprime, recorta e marca um furinho a cada treino, livro ou dinheiro guardado.",
+    "ferias-sem-tela": "Atividades de papel e lápis pra criança fazer sozinha ou com um adulto, e um calendário com uma ideia por dia.",
+}
+
+
+def pagina_ebook(slug, pasta, v, tipo, previas):
+    base = "../../"
+    url = links.get(slug)
+    pr = v["preco"].replace(" ", NB)
+    titulo = v["titulo"] or slug
+    h1, resto = (titulo.split(":", 1) + [""])[:2]
+    sub = v["sub"]
+    if resto.strip():
+        sub = f"{cap1(resto.strip())}. {sub}"
+    rotulo = "E-book em PDF" if tipo == "E-book" else "Kit em PDF pra imprimir"
+    lis = "".join(f"<li>{md_inline(b)}</li>" for b in v["bullets"])
+    prev = ""
+    if previas:
+        itens = "".join(f'<li><a class="abre" href="{base}img/ebooks/{p}" data-cap="Página de exemplo {n}"><img class="arte" src="{base}img/ebooks/{p}" width="1080" height="1350" alt="Página de exemplo {n} do {esc(h1)}" loading="lazy"></a></li>' for n, p in enumerate(previas, 1))
+        prev = f"""<section class="bloco stories" id="artes" aria-labelledby="t-prev">
+  <div class="cab"><h2 id="t-prev">Algumas páginas</h2><p>Toque numa página pra ver em tela cheia.</p></div>
+  <ul class="fila-stories">{itens}</ul>
+</section>"""
+    return head(titulo, sub, f"{SITE}img/ebooks/{slug}.png", base, view_content=True) + f"""<body class="com-barra">
+{topo(base, slug, pr, url)}
+<main>
+<section class="hero" aria-labelledby="titulo">
+  <div class="hero-texto">
+    <p class="rotulo">{rotulo}</p>
+    <h1 id="titulo">{esc(h1.strip())}</h1>
+    <p class="hero-sub">{md_inline(sub)}</p>
+  </div>
+  <div class="hero-compra">
+    <span class="preco-valor">{pr}</span>
+    {botao(url, "Comprar o " + ("e-book" if tipo == "E-book" else "kit"), pr, ident="cta-hero")}
+    <p class="seguro">{CONFIA}</p>
+  </div>
+  <div class="hero-palco">
+    <a class="eb-capa abre" href="{base}img/ebooks/{slug}-vertical.png" data-cap="Capa: {esc(titulo)}" style="grid-column:1/-1"><img class="arte" src="{base}img/ebooks/{slug}-vertical.png" width="1080" height="1350" alt="Capa do {esc(titulo)}" fetchpriority="high"></a>
+  </div>
+</section>
+
+{prev}
+<section class="bloco"{'' if prev else ' id="artes"'} aria-labelledby="t-dentro">
+  <div class="cab"><h2 id="t-dentro">O que tem dentro</h2><p class="eb-desc">{md_inline(RESUMO_EBOOK.get(slug) or frases(v['desc'], 1))}</p></div>
+  <ul class="eb-lista">{lis}</ul>
+</section>
+<section class="bloco compra" id="comprar" aria-labelledby="t-compra">
+  <div class="compra-arte" aria-hidden="true"><img class="arte" src="{base}img/ebooks/{slug}.png" width="1080" height="1080" alt="" loading="lazy"></div>
+  <div class="compra-texto">
+    <h2 id="t-compra">{esc(h1.strip())} por {pr}</h2>
+    {botao(url, f"Comprar por {pr}", pr, cls="btn btn-grande")}
+    <div class="garantias">
+      <p><b>{GARANTIA}.</b> Se não gostar, pede o reembolso na Kiwify dentro de 7{NB}dias e recebe o dinheiro de volta.</p>
+      <p><b>Pagamento seguro.</b> Pix, cartão ou boleto, processado pela Kiwify. O acesso chega por e-mail: no Pix e no cartão na hora, no boleto quando ele compensa.</p>
+    </div>
+  </div>
+</section>
+
+{quem_fez(base, "Além dos packs de artes pra Instagram, faço estes materiais pra imprimir e usar em casa no fim de ano.")}</main>
+{rodape(base, "Boas festas, e até janeiro.", cta=botao(url, f"Comprar o {'e-book' if tipo == 'E-book' else 'kit'} por {pr}", pr, cls="btn btn-grande", ident="comprar-fim"))}
+{barra(url, pr, GARANTIA, "Comprar")}
+{LUZ}<script src="{base}site.js" defer></script>
+</body>
+</html>
+"""
+
+
+# ----------------------------------------------------------------------------------------------
+# gera tudo
+# ----------------------------------------------------------------------------------------------
 AQUI.joinpath("estilo.css").write_text(CSS)
-cards = []
+AQUI.joinpath("site.js").write_text(JS)
+
+pacotes = {}
 for pj in sorted((PACKS / "packs").glob("*/pack.json")):
     slug = pj.parent.name
+    if slug.startswith("_"):
+        continue
+    if not (AQUI / "img" / slug / "c1.jpg").exists():
+        print("pulado (sem as imagens em img/):", slug)
+        continue
     pack = json.loads(pj.read_text())
+    pacotes[slug] = pack
     d = AQUI / slug; d.mkdir(exist_ok=True)
     (d / "index.html").write_text(pagina_pack(slug, pack))
-    nicho = pack.get("titulo", slug).split("·")[-1].strip()
-    cards.append(f'<a href="{slug}/"><img src="img/{slug}/capa-kiwify.jpg" alt="Pack {html.escape(nicho)}" loading="lazy"><div><b>{html.escape(nicho)}</b><span>14 artes · R$ 27</span></div></a>')
 
-# e-books
+sem_acento = lambda t: unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+ordem_vitrine = [s for s in PRIMEIRO if s in pacotes] + sorted((s for s in pacotes if s not in PRIMEIRO), key=lambda s: sem_acento(nome_pack(s, pacotes[s])))
+cards = []
+for slug in ordem_vitrine:
+    estado = f"14 artes · {PRECO}" if links.get(slug) else "Em breve"
+    cards.append(f'<li><a href="{slug}/"><div class="foto"><img class="arte" src="img/{slug}/c1.jpg" width="720" height="900" alt="" loading="lazy"></div><b>{esc(nome_pack(slug, pacotes[slug]))}</b><span>{estado}</span></a></li>')
+
 eb_cards = []
+dst = AQUI / "img" / "ebooks"; dst.mkdir(parents=True, exist_ok=True)
 EXTRAS = [AQUI.parent / n / "venda.md" for n in ("kit-metas-2027", "ferias-sem-tela") if (AQUI.parent / n / "venda.md").exists()]
 for e in sorted(EBOOKS.glob("*/venda.md")) + EXTRAS:
-    slug = e.parent.name
-    dst = AQUI / "img" / "ebooks"; dst.mkdir(parents=True, exist_ok=True)
-    if (e.parent / "capa-quadrada.png").exists():
-        shutil.copy(e.parent / "capa-quadrada.png", dst / f"{slug}.png")
-    t = e.read_text(); titulo = re.search(r"^#\s*(.+)$", t, re.M); preco = re.search(r"R\$\s*[\d,]+", t)
-    url = links.get(slug, "")
-    sub = re.search(r"^\*\*(?:Subt[íi]tulo:\*\*\s*)?(.+?)(?:\*\*)?$", t, re.M); bullets = re.findall(r"^- (.+)$", t, re.M)
-    paras = [l for l in t.split("\n\n") if l.strip() and not l.lstrip().startswith(("#", "-", "**", "Preço"))]
-    if (e.parent / "capa-vertical.png").exists(): shutil.copy(e.parent / "capa-vertical.png", dst / f"{slug}-vertical.png")
+    slug, pasta = e.parent.name, e.parent
+    copia_imagem(pasta / "capa-quadrada.png", dst / f"{slug}.png")
+    copia_imagem(pasta / "capa-vertical.png", dst / f"{slug}-vertical.png")
+    previas = []
+    for n in (1, 2, 3, 4):
+        alvo = dst / f"{slug}-previa-{n}.jpg"
+        if copia_imagem(pasta / f"previa-{n}.png", alvo, max_lado=900):
+            previas.append(alvo.name if alvo.exists() else alvo.with_suffix(".png").name)
+    v = ler_venda(e)
+    tipo = "E-book" if pasta.parent == EBOOKS else "Kit pra imprimir"
     pd = AQUI / "ebooks" / slug; pd.mkdir(parents=True, exist_ok=True)
-    ttl = titulo.group(1) if titulo else slug; pr = preco.group(0) if preco else ""
-    btn = f'<a class="btn" href="{html.escape(url)}">Quero o e-book por {pr}</a>' if url else '<a class="btn off" aria-disabled="true">Em breve</a>'
-    (pd / "index.html").write_text(HEAD.format(title=ttl, desc=html.escape(sub.group(1) if sub else ""), og=f"../../img/ebooks/{slug}.png", base="../../") + f"""
-<div class="wrap"><header class="top"><a href="../../">Packs de Fim de Ano</a><span>{pr}</span></header>
-<div class="hero"><div><span class="olho">E-book</span><h1>{html.escape(ttl)}</h1><p class="sub">{html.escape(sub.group(1) if sub else "")}</p>
-<div class="preco"><b>{pr}</b><span>PDF · acesso imediato</span></div>{btn}<p class="seg">Compra segura pela Kiwify. Você recebe o acesso por email na hora.</p></div>
-<div><img src="../../img/ebooks/{slug}-vertical.png" alt="Capa do e-book" style="width:100%;border-radius:10px"></div></div></div>
-<section><div class="wrap"><h2>O que tem dentro</h2><p class="desc">{html.escape(paras[0].strip() if paras else "")}</p><ul class="lista">{''.join(f"<li>{html.escape(b)}</li>" for b in bullets)}</ul></div></section>
-<section class="final"><div class="wrap"><h2>{html.escape(ttl)}</h2>{btn}</div></section>
-<footer><div class="wrap">Packs de Fim de Ano · E-books</div></footer></body></html>""")
-    url = f"ebooks/{slug}/"
-    eb_cards.append(f'<a href="{html.escape(url) if url else "#"}"><img src="img/ebooks/{slug}.png" alt="" loading="lazy"><div><b>{html.escape(titulo.group(1) if titulo else slug)}</b><span>{"E-book" if e.parent.parent == EBOOKS else "Kit imprimível"} · {preco.group(0) if preco else ""}</span></div></a>')
+    (pd / "index.html").write_text(pagina_ebook(slug, pasta, v, tipo, previas))
+    nome = (v["titulo"] or slug).split(":")[0]
+    eb_cards.append(f'<li><a href="ebooks/{slug}/"><div class="foto"><img class="arte" src="img/ebooks/{slug}.png" width="1080" height="1080" alt="" loading="lazy"></div><b>{esc(nome)}</b><span>{"E-book" if tipo == "E-book" else "Kit"} ·{NB}{v["preco"].replace(" ", NB)}</span></a></li>')
 
-AQUI.joinpath("index.html").write_text(HEAD.format(title="Packs de Fim de Ano", desc="30 packs de artes de Instagram prontas pro fim de ano, um pra cada profissão. R$ 27 cada.", og="img/dentista/capa-kiwify.jpg", base="") + f"""
-<div class="wrap"><header class="top"><span>Packs de Fim de Ano</span><span>R$ 27 cada</span></header>
-<div style="padding-block:40px 30px"><span class="olho">Dezembro pronto em 5 minutos</span><h1 style="font:italic 400 clamp(56px,8vw,110px)/.92 var(--serif);color:var(--dest);margin:12px 0 16px;text-wrap:balance">O Instagram do seu negócio no fim de ano</h1>
-<p class="sub" style="font-size:20px;max-width:40ch;color:#e2d6c8">14 artes prontas por profissão: carrossel, posts e stories de Natal, recesso e Ano Novo. Escolha a sua.</p></div>
-<div class="cat">{''.join(cards)}</div>
-{'<h2 style="margin-top:70px">E-books</h2><div class="cat">' + ''.join(eb_cards) + '</div>' if eb_cards else ''}
-</div><footer><div class="wrap" style="margin-top:60px">Packs de Fim de Ano · Fotos de exemplo: Unsplash (licença livre)</div></footer></body></html>""")
-print("site gerado:", len(cards), "packs,", len(eb_cards), "e-books")
+CARGA = {True: 'fetchpriority="high"', False: 'loading="lazy"'}
+vitrine_capas = "".join(
+    f'<a class="abre-pack" href="{s}/"><img class="arte" src="img/{s}/c1.jpg" width="720" height="900" alt="Capa do carrossel do pack pra {esc(nome_pack(s, pacotes[s]).lower())}" {CARGA[i == 0]}><span>{esc(nome_pack(s, pacotes[s]))}</span></a>'
+    for i, s in enumerate(s for s in ("dentista", "salao-de-beleza", "advogado") if s in pacotes))
+
+AQUI.joinpath("index.html").write_text(head(
+    "Packs de Fim de Ano pro Instagram",
+    f"{len(cards)} packs de artes de Instagram prontas pro fim de ano, um pra cada profissão: carrossel, posts e stories. {PRECO} cada.",
+    f"{SITE}img/dentista/capa-kiwify.jpg", "") + f"""<body>
+<a class="pular" href="#packs">Pular para os packs</a>
+{topo("", None)}
+<main>
+<section class="vit-hero" aria-labelledby="titulo">
+  <div>
+    <p class="rotulo">Packs de fim de ano pra {len(cards)} profissões</p>
+    <h1 id="titulo">Seu feed de dezembro, pronto.</h1>
+    <p class="hero-sub">14 artes de Instagram por profissão: um carrossel de 6 telas, 4 posts e 4 stories de Natal, recesso e ano novo. {PRECO} cada, pra editar no Canva ou postar em PNG.</p>
+    <p class="vit-confia">Pix, cartão ou boleto pela Kiwify · {GARANTIA}</p>
+    <a class="btn" href="#packs">Escolher minha profissão</a>
+  </div>
+  <div class="vit-capas">{vitrine_capas}</div>
+</section>
+
+<section class="bloco" id="packs" aria-labelledby="t-packs">
+  <div class="cab"><h2 id="t-packs">Escolha a sua profissão</h2><p>Cada pack tem textos escritos pro seu ramo, com espaço pro seu nome, registro e @. Toque numa profissão pra ver as 14 artes.</p></div>
+  <ul class="vitrine">{''.join(cards)}</ul>
+</section>
+
+{f'''<section class="bloco" aria-labelledby="t-ebooks">
+  <div class="cab"><h2 id="t-ebooks">E-books e kits</h2><p>Pra usar em casa no fim de ano: a ceia, as metas, as férias das crianças e o dinheiro de 2027.</p></div>
+  <ul class="vitrine">{''.join(eb_cards)}</ul>
+</section>''' if eb_cards else ''}
+
+<section class="creme" aria-labelledby="t-como">
+  <div class="creme-in">
+    <h2 id="t-como">Como funciona</h2>
+    <div class="vit-como">
+      <p><b>Você paga na Kiwify</b>Pix, cartão ou boleto. A Kiwify processa o pagamento e guarda os arquivos.</p>
+      <p><b>Recebe por e-mail</b>O acesso à área de membros chega na hora no Pix e no cartão, e no boleto quando ele compensa.</p>
+      <p><b>Tem {GARANTIA}</b>Se não gostar, pede o reembolso pela Kiwify dentro de 7{NB}dias e o dinheiro volta.</p>
+    </div>
+  </div>
+</section>
+
+{quem_fez("", "Faço artes de Instagram pra consultórios e negócios locais, e montei um pack pra cada profissão com o que todo perfil precisa no fim de ano.")}</main>
+{rodape("", "Boas festas pro seu Instagram.", "Fotos de exemplo: Unsplash, licença livre. ", ("#packs", "Voltar pra lista de profissões"))}
+<script src="site.js" defer></script>
+</body>
+</html>
+""")
+print("site gerado:", len(cards), "packs,", len(eb_cards), "e-books/kits")
+for a in AVISOS:
+    print("AVISO", a)
