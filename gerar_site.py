@@ -16,6 +16,11 @@ PACKS = AQUI.parent / "packs-fim-de-ano"
 EBOOKS = AQUI.parent / "ebooks"
 SITE = "https://guilhermeslvg.github.io/packs/"   # endereço público (og:image precisa de URL completa)
 META_PIXEL_ID = ""   # cole aqui o ID do Pixel da Meta quando tiver; vazio = nada de pixel na página
+# >>> GOOGLE SEARCH CONSOLE: cole aqui a tag de verificação que o Google mostrar, entre as aspas.
+# Pode ser a linha inteira (<meta name="google-site-verification" content="abc123" />) ou só o código (abc123).
+# Vazio = sem tag. Ela entra só na página inicial (/packs/), que é a que o Google confere.
+GOOGLE_VERIFICACAO = ""
+MARCA = "Atelier de Posts"   # nome da loja na Kiwify e na página do Facebook (vai no JSON-LD como marca e vendedor)
 
 links = json.loads((AQUI / "links.json").read_text()) if (AQUI / "links.json").exists() else {}
 bumps = json.loads((PACKS / "kiwify-bumps.json").read_text()) if (PACKS / "kiwify-bumps.json").exists() else []
@@ -41,6 +46,69 @@ NOMES = {
 }
 # primeiro os nichos que têm extras no checkout, depois o resto em ordem alfabética
 PRIMEIRO = ["dentista", "estetica", "salao-de-beleza", "barbearia", "nail-designer"]
+
+# ----------------------------------------------------------------------------------------------
+# SEO: como cada página aparece no Google. Termos tirados do jeito que as pessoas buscam
+# ("pack de artes de natal para dentista", "posts prontos para confeitaria", "artes de natal para salão de beleza").
+# BUSCA[slug] = (profissão no singular, como vai no título;  "pro Instagram ___";  o que tem de específico, tirado do venda.md)
+# ----------------------------------------------------------------------------------------------
+BUSCA = {
+    "academia": ("academia", "da academia", "horário das festas, treino curto de 30 minutos e chamada pras matrículas de janeiro"),
+    "advogado": ("advogado", "do escritório de advocacia", "dúvidas das festas e recesso com os prazos suspensos, dentro do Provimento 205/2021"),
+    "arquitetura-interiores": ("arquitetura de interiores", "de arquitetura e interiores", "decoração de Natal sem bagunçar a casa, recesso e reforma de janeiro"),
+    "barbearia": ("barbearia", "da barbearia", "barba e corte pras festas, horário de dezembro e chamada pra agendar"),
+    "cafeteria": ("cafeteria", "da cafeteria", "bebida de Natal da casa, café pra presentear e horário das festas"),
+    "confeitaria": ("confeitaria", "da confeitaria", "encomendas de Natal, prazo pra pedir, cardápio com seus sabores e retirada no dia 24"),
+    "contador": ("contador", "do escritório de contabilidade", "13º salário, recibos pro IR 2027, o que o MEI precisa e recesso"),
+    "corretor-de-imoveis": ("corretor de imóveis", "do corretor de imóveis", "casa nova em 2027, recesso e convite pras visitas de janeiro"),
+    "dentista": ("dentista", "do consultório odontológico", "cuidados com o sorriso nas festas, recesso e convite pra revisão de janeiro"),
+    "dermatologista": ("dermatologista", "do consultório de dermatologia", "protetor solar no verão, limão e sol, queimadura e recesso"),
+    "escola-de-idiomas": ("escola de idiomas", "da escola de idiomas", "inglês pra viagem de férias, 15 minutos por dia e matrícula de janeiro"),
+    "estetica": ("clínica de estética", "da clínica de estética", "cuidados de pele no calor e no pós-festa, agenda de dezembro e Feliz 2027"),
+    "fisioterapeuta": ("fisioterapeuta", "do fisioterapeuta", "pausa na viagem de carro, peso das sacolas, como levantar a mala e recesso"),
+    "floricultura": ("floricultura", "da floricultura", "arranjo da mesa de Natal, encomenda com tempo e horário das festas"),
+    "fotografo": ("fotógrafo", "do fotógrafo", "dicas pra foto da ceia no celular, ensaio de Natal e recesso"),
+    "hamburgueria": ("hamburgueria", "da hamburgueria", "delivery nos dias 25 e 1º, combo família e horário das festas"),
+    "harmonizacao": ("harmonização facial", "de harmonização facial", "naturalidade, tempo de recuperação, recesso e Feliz 2027"),
+    "loja-de-roupas": ("loja de roupas", "da loja de roupas", "looks de Natal e Réveillon, ideias de presente e horário de fim de ano"),
+    "maquiadora": ("maquiadora", "da maquiadora", "maquiagem no calor, o que levar na bolsa, agenda e reserva pro dia 31"),
+    "medico": ("médico", "do consultório médico", "bebida e desidratação, remédio na viagem, vacinas, recesso e Feliz 2027"),
+    "mentora": ("mentora de negócios", "de mentora de negócios", "4 perguntas de balanço do ano, recesso e convite pra 2027"),
+    "nail-designer": ("nail designer", "da nail designer", "unhas pras festas, agenda de dezembro e o que fazer se lascar"),
+    "nutricionista": ("nutricionista", "do nutricionista", "água entre os brindes, prato da ceia, sobras no calor e recesso"),
+    "otica": ("ótica", "da ótica", "óculos de sol UV400, lente depois da praia, vale-presente e recesso"),
+    "personal-trainer": ("personal trainer", "do personal trainer", "treino nas festas, treino de viagem sem academia e metas de janeiro"),
+    "pet-shop": ("pet shop", "do pet shop", "fogos que assustam, o que o pet não pode comer da ceia e horário das festas"),
+    "psicologa": ("psicóloga", "da psicóloga", "saudade de quem falta, dizer não a convite, ansiedade antes da festa e recesso"),
+    "restaurante": ("restaurante", "do restaurante", "reservas, ceia pra levar, mesas pra grupos e horário de 24, 25 e 31/12"),
+    "salao-de-beleza": ("salão de beleza", "do salão de beleza", "sol e cloro na cor, penteado pras festas, agenda de dezembro e Feliz 2027"),
+    "sobrancelha": ("designer de sobrancelha", "da designer de sobrancelha", "quando marcar, cuidados com henna, vale-design e agenda das festas"),
+}
+# nestes o rótulo "Pack de Natal e Ano Novo pra ..." quebraria em 2 linhas no celular de 390px (antes cabia em 1):
+# fica só "Pack de Natal pra ...", pra hero não descer
+ROTULO_CURTO = {"corretor-de-imoveis", "mentora", "sobrancelha"}
+# título diferente do padrão quando a busca real usa outra palavra
+TITULO_BUSCA = {
+    "confeitaria": "Posts prontos de Natal para confeitaria | Instagram | R$ 27",
+    "salao-de-beleza": "Artes de Natal para salão de beleza | Instagram | R$ 27",
+}
+# e-books, kits e os produtos novos (entram sozinhos quando a página for gerada com esse slug)
+SEO_PRODUTO = {
+    "ceia-sem-stress": ("Cardápio de ceia de Natal com lista de compras | R$ 14,90",
+                        "Cardápio de ceia de Natal pra 8 a 10 pessoas: 8 receitas, lista de compras por seção do mercado e cronograma do dia 22 ao 24. E-book em PDF, R$ 14,90."),
+    "2027-no-controle": ("Como organizar o dinheiro em 2027 | E-book | R$ 19,90",
+                         "Plano de 30 dias pra saber pra onde vai o salário e começar 2027 com orçamento, reserva e metas. 39 páginas em PDF com planner financeiro. R$ 19,90."),
+    "kit-metas-2027": ("Metas 2027 para imprimir: bingo e vision board | R$ 14,90",
+                       "40 punch cards de metas, bingo de metas 2027, vision board em A4 e A3 e planner trimestral pra imprimir e marcar o ano inteiro. Kit em PDF, R$ 14,90."),
+    "ferias-sem-tela": ("Atividades para imprimir nas férias, 3 a 8 anos | R$ 19,90",
+                        "87 páginas de atividades pra imprimir: labirintos, caça-palavras, ligue os pontos, desenhos pra colorir e jogos pra crianças de 3 a 8 anos. PDF, R$ 19,90."),
+    "dezembro-sem-tela": ("Atividades de Natal para imprimir, 3 a 9 anos | R$ 14,90",
+                          "50 atividades de Natal pra imprimir, separadas por idade: labirinto, caça-palavras, colorir, carta pro Papai Noel e calendário de 1 a 24/12. PDF, R$ 14,90."),
+    "familia-na-mesa": ("Brincadeiras para a ceia de Natal e Ano Novo | R$ 17,90",
+                        "40 brincadeiras pra imprimir e jogar na ceia, na confraternização da firma e na virada: quiz, mímica, bingo natalino e amigo secreto. PDF, R$ 17,90."),
+    "cardapio-natal-confeitaria": ("Cardápio de Natal para confeitaria no Canva | R$ 19,90",
+                                   "Cardápio de Natal pro feed e pro story, tabela de encomendas P/M/G, etiquetas pra caixa e mensagens de WhatsApp. Editável no Canva, R$ 19,90."),
+}
 
 # quem fez: foto e Instagram de verdade do Guilherme
 QUEM_FOTO = "img/guilherme.jpg"     # retrato 4:5 (recorte da foto do site pessoal dele)
@@ -115,6 +183,9 @@ ol,ul{margin:0;padding:0;list-style:none}
 .rotulo{font:600 16px/1.35 var(--sans);color:var(--tinta)}
 .hero h1{font-size:clamp(44px,12.4vw,60px);line-height:.95;color:var(--ouro);margin-top:10px;text-wrap:balance}
 .hero h1.longo{font-size:clamp(40px,11vw,60px)}
+/* o rótulo mora dentro do h1 (o Google lê "Pack de Natal... pra dentistas" como título), mas fica com a cara de antes:
+   a margem negativa cancela a margem do h1, então o rótulo e a frase ficam na mesma posição de quando eram p + h1 */
+h1>.rotulo{display:block;margin:-10px 0 10px;color:var(--tinta);letter-spacing:normal;text-wrap:pretty}
 .hero-sub{font-size:18px;line-height:1.42;margin-top:14px;max-width:34ch;text-wrap:balance}
 .hero-compra{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:18px;row-gap:10px}
 .preco-valor{font:italic 400 48px/1 var(--serif);color:var(--tinta);white-space:nowrap}
@@ -534,7 +605,99 @@ JS = r"""(function () {
 # ----------------------------------------------------------------------------------------------
 # pedaços comuns
 # ----------------------------------------------------------------------------------------------
-def head(title, desc, og, base, view_content=False):
+PAGINAS = []   # (caminho, [imagens]) de cada página gerada, pro sitemap.xml
+
+
+def dimensoes(rel):
+    """Largura e altura de uma imagem do site (sips do Mac). None se não der pra ler."""
+    try:
+        out = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(AQUI / rel)], capture_output=True, text=True, check=True).stdout
+        w, h = re.search(r"pixelWidth:\s*(\d+)", out), re.search(r"pixelHeight:\s*(\d+)", out)
+        return (int(w.group(1)), int(h.group(1))) if w and h else None
+    except Exception:
+        return None
+
+
+def texto_puro(s):
+    """HTML da página -> texto igual ao que aparece na tela (pro JSON-LD bater com o visível)."""
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", str(s or "")))).strip()
+
+
+def jsonld(*objs):
+    """<script type="application/ld+json"> com os objetos; "</" escapado pra nunca fechar o script antes da hora."""
+    tags = []
+    for o in objs:
+        if o:
+            tags.append('<script type="application/ld+json">' + json.dumps(o, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script>")
+    return "\n".join(tags)
+
+
+def ld_produto(nome, desc, imagens, url_compra, preco, sku, categoria):
+    """Product com Offer. Sem aggregateRating e sem review: não existe avaliação de verdade pra mostrar."""
+    if not url_compra:
+        return None
+    return {
+        "@context": "https://schema.org", "@type": "Product", "name": nome, "description": desc,
+        "image": imagens, "sku": sku, "category": categoria,
+        "brand": {"@type": "Brand", "name": MARCA},
+        "offers": {
+            "@type": "Offer", "url": url_compra, "price": f"{float(valor(preco)):.2f}", "priceCurrency": "BRL",
+            "availability": "https://schema.org/InStock", "itemCondition": "https://schema.org/NewCondition",
+            "seller": {"@type": "Organization", "name": MARCA},
+            # garantia de 7 dias da Kiwify (é o que a página promete)
+            "hasMerchantReturnPolicy": {"@type": "MerchantReturnPolicy", "applicableCountry": "BR",
+                                        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+                                        "merchantReturnDays": 7, "returnFees": "https://schema.org/FreeReturn"},
+        },
+    }
+
+
+def ld_faq(perguntas):
+    if not perguntas:
+        return None
+    return {"@context": "https://schema.org", "@type": "FAQPage",
+            "mainEntity": [{"@type": "Question", "name": texto_puro(q),
+                            "acceptedAnswer": {"@type": "Answer", "text": texto_puro(r)}} for q, r in perguntas]}
+
+
+def ld_trilha(*itens):
+    """BreadcrumbList: [(nome, caminho), ...] a partir da raiz do site."""
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList",
+            "itemListElement": [{"@type": "ListItem", "position": n, "name": nome, "item": SITE + cam}
+                                for n, (nome, cam) in enumerate(itens, 1)]}
+
+
+def head(title, desc, og, base, view_content=False, caminho="", og_alt="", ld="", preco=None, imagens=()):
+    """caminho: endereço da página a partir de SITE ("" = página inicial, "dentista/", "ebooks/ceia-sem-stress/").
+    Monta canonical, Open Graph, Twitter e o JSON-LD (ld) e anota a página pro sitemap."""
+    canon = SITE + caminho
+    PAGINAS.append((caminho, [og] + [i for i in imagens if i != og]))
+    dim = dimensoes(og.replace(SITE, "", 1)) if og.startswith(SITE) else None
+    og_dim = f'\n<meta property="og:image:width" content="{dim[0]}">\n<meta property="og:image:height" content="{dim[1]}">' if dim else ""
+    og_alt = og_alt or title
+    tipo = "product" if preco else "website"
+    preco_meta = (f'\n<meta property="product:price:amount" content="{float(valor(preco)):.2f}">'
+                  f'\n<meta property="product:price:currency" content="BRL">') if preco else ""
+    verif = ""
+    if caminho == "" and GOOGLE_VERIFICACAO.strip():
+        m = re.search(r'content="([^"]+)"', GOOGLE_VERIFICACAO)
+        verif = f'\n<meta name="google-site-verification" content="{esc(m.group(1) if m else GOOGLE_VERIFICACAO.strip())}">'
+    seo = f"""<link rel="canonical" href="{esc(canon)}">
+<meta name="robots" content="index,follow,max-image-preview:large">{verif}
+<meta property="og:type" content="{tipo}">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="Packs de Fim de Ano · {esc(MARCA)}">
+<meta property="og:url" content="{esc(canon)}">
+<meta property="og:title" content="{esc(title)}">
+<meta property="og:description" content="{esc(desc)}">
+<meta property="og:image" content="{esc(og)}">{og_dim}
+<meta property="og:image:alt" content="{esc(og_alt)}">{preco_meta}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{esc(title)}">
+<meta name="twitter:description" content="{esc(desc)}">
+<meta name="twitter:image" content="{esc(og)}">
+<meta name="twitter:image:alt" content="{esc(og_alt)}">
+{ld}"""
     pixel = ""
     if META_PIXEL_ID:
         pixel = ("<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};"
@@ -548,10 +711,7 @@ def head(title, desc, og, base, view_content=False):
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
-<meta property="og:type" content="website">
-<meta property="og:title" content="{esc(title)}">
-<meta property="og:description" content="{esc(desc)}">
-<meta property="og:image" content="{esc(og)}">
+{seo}
 <meta name="theme-color" content="#16110e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -754,7 +914,14 @@ def alt_arte(d, pack, tipo):
         extra = limpa(d.get("fino2"), pack)
     alt = f"{tipo}: {t}"
     if extra and extra not in t:
-        alt += f". {extra}"
+        # o apoio às vezes repete o fim do título ("Janeiro é pra revisão." + "é pra revisão. A agenda..."): corta a repetição
+        primeira, _, resto = extra.partition(". ")
+        if primeira.rstrip(".") and t.rstrip(".!?").lower().endswith(primeira.rstrip(".").lower()):
+            extra = resto
+        if extra:
+            alt += (" " if t.endswith((".", "!", "?")) else ". ") + extra
+    alt = re.sub(r"([.!?])\.+", r"\1", alt)            # "mancham?." e "dormir.." viram "mancham?" e "dormir."
+    alt = re.sub(r"(\d{4}) (?=[A-ZÁÉÍÓÚ])", r"\1. ", alt)   # "confiança em 2026 Nos vemos" ganha o ponto que falta
     return ponto(alt)
 
 
@@ -824,11 +991,12 @@ def pagina_pack(slug, pack):
     linha_reg = f"<span>{esc(reg)}</span>" if reg else (f"<span>{esc(limpa(pack.get('cidade'), pack))}</span>" if pack.get("cidade") else "")
     troca = f"Nome, {sigla} e @ você troca pelos seus." if sigla else "Nome, @ e telefone você troca pelos seus."
     c1 = car[0]
+    ctx = f"do pack de fim de ano pra {curto[:1].lower() + curto[1:]}"   # contexto no alt das artes (busca de imagem)
 
     # carrossel
     trilho = "".join(
         f'<li><a class="abre" href="{im(d["id"])}" data-cap="Carrossel, tela {n}: {esc(titulo_arte(d, pack))}">'
-        f'<img class="arte" src="{im(d["id"])}" width="720" height="900" alt="{esc(alt_arte(d, pack, f"Tela {n} do carrossel"))}" loading="lazy"></a>'
+        f'<img class="arte" src="{im(d["id"])}" width="720" height="900" alt="{esc(alt_arte(d, pack, f"Tela {n} do carrossel {ctx}"))}" loading="lazy"></a>'
         f'<span class="legenda">{"Capa: " if n == 1 else ""}{esc(titulo_arte(d, pack))}</span></li>'
         for n, d in enumerate(car, 1))
     pontos = '<i class="on"></i>' + "<i></i>" * (len(car) - 1)
@@ -838,11 +1006,11 @@ def pagina_pack(slug, pack):
 
     grade_posts = "".join(
         f'<li><a class="abre" href="{im(d["id"])}" data-cap="Post: {esc(titulo_arte(d, pack, False))}">'
-        f'<img class="arte" src="{im(d["id"])}" width="720" height="900" alt="{esc(alt_arte(d, pack, "Post"))}" loading="lazy"></a>'
+        f'<img class="arte" src="{im(d["id"])}" width="720" height="900" alt="{esc(alt_arte(d, pack, f"Post {ctx}"))}" loading="lazy"></a>'
         f'<span class="legenda">{esc(titulo_arte(d, pack, False))}</span></li>' for d in posts)
     fila = "".join(
         f'<li><a class="abre" href="{im(d["id"])}" data-cap="Story: {esc(titulo_arte(d, pack, False))}">'
-        f'<img class="arte" src="{im(d["id"])}" width="720" height="1280" alt="{esc(alt_arte(d, pack, "Story"))}" loading="lazy"></a>'
+        f'<img class="arte" src="{im(d["id"])}" width="720" height="1280" alt="{esc(alt_arte(d, pack, f"Story {ctx}"))}" loading="lazy"></a>'
         f'<span class="legenda">{esc(titulo_arte(d, pack, False))}</span></li>' for d in sts)
     com_caixa = sum(1 for d in sts if d.get("caixa"))
     desc_sts = ponto(sem_prefixo(b_sts)) if b_sts else ""
@@ -942,26 +1110,52 @@ def pagina_pack(slug, pack):
     </div>""" if tem_personalizado else "")
     ou_personalizado = " ou pegue a versão personalizada, oferecida logo depois do pagamento" if tem_personalizado else ""
     exemplo = ", ".join(x for x in [prof, reg, "@" + arroba] if x)
-    duv_regra = ""
+    # dúvidas: a mesma lista vira os <details> da página e o FAQPage do JSON-LD (texto idêntico ao visível)
+    duvidas = [
+        ("Preciso saber design?", "Não. No Canva você clica no texto e troca o nome, o @, o telefone e as datas. O resto já está pronto."),
+        ("Como eu recebo?", "Assim que o pagamento é aprovado, chega um e-mail da Kiwify com o acesso à área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa, o que pode levar até 3 dias úteis."),
+        ("Os PNGs já vêm com os meus dados?", f"Não. Eles vêm com dados de exemplo ({esc(exemplo)}). Pra sair com os seus, edite os PDFs no Canva{ou_personalizado}."),
+        ("As fotos são minhas?", "As fotos de exemplo são de banco de imagem com licença livre (Unsplash). Ficam bonitas como estão, mas com fotos suas o perfil fica com a sua cara."),
+    ]
     if conselho:
         regra_txt = " ".join(ponto(cap1(b)) for b in regras)
-        duv_regra = f"""<details><summary>Posso ter problema com o conselho?</summary><p>Os textos foram escritos pensando nas regras de publicidade da sua profissão. {md_inline(regra_txt)} Se você mudar os textos, confira se continuam dentro da regra.</p></details>"""
+        duvidas.append(("Posso ter problema com o conselho?", f"Os textos foram escritos pensando nas regras de publicidade da sua profissão. {md_inline(regra_txt)} Se você mudar os textos, confira se continuam dentro da regra."))
+    duvidas += [
+        ("E se eu não gostar?", f"Você tem {GARANTIA}. Pede o reembolso pela Kiwify dentro desse prazo e o dinheiro volta."),
+        ("Até quando dá pra usar?", "As artes são pro período de 1º de dezembro até a volta em janeiro. O post de ano novo está com 2027."),
+    ]
+    lista_duv = "\n    ".join(f"<details><summary>{q}</summary><p>{r}</p></details>" for q, r in duvidas)
     lugar = lugar_m.group(1) if lugar_m else ""
     frase_fim = f"Boas festas pro seu {lugar}." if lugar and lugar != "clínica" else ("Boas festas pra sua clínica." if lugar else "Boas festas, e até janeiro.")
     # o lugar no título casa a página com o anúncio de cada nicho (sempre em até 2 linhas)
     h1 = f"O dezembro {'da' if lugar == 'clínica' else 'do'} {lugar}, pronto." if lugar else "Seu feed de dezembro, pronto."
-    titulo_pag = v["titulo"] or f"Pack de Fim de Ano · {curto}"
-    desc_meta = f"{v['sub']} {PRECO}, edite no Canva ou baixe em PNG."
+    nome_produto = v["titulo"] or f"Pack de Fim de Ano · {curto}"
+    termo, quem, foco = BUSCA.get(slug, (curto.lower(), "", ""))
+    titulo_pag = TITULO_BUSCA.get(slug) or f"Pack de artes de Natal para {termo} | Instagram | {PRECO.replace(NB, ' ')}"
+    if len(titulo_pag) > 60:   # o Google corta perto de 60 caracteres: sai o "Instagram" pra o preço continuar à vista
+        titulo_pag = titulo_pag.replace(" | Instagram", "")
+    if foco:
+        desc_meta = f"{total} artes de Natal e Ano Novo pro Instagram {quem}: {foco}. Editável no Canva, {PRECO}."
+    else:
+        desc_meta = f"{v['sub']} {PRECO}, edite no Canva ou baixe em PNG."
+    abs_img = lambda i: f"{SITE}img/{slug}/{i}.jpg"
+    imagens = [abs_img("capa-kiwify")] + [abs_img(d["id"]) for d in car + posts + sts]
+    ld = jsonld(
+        ld_produto(nome_produto, desc_meta, imagens[:4], url, PRECO, slug, "Artes para Instagram"),
+        ld_faq(duvidas),
+        ld_trilha(("Packs de Fim de Ano", ""), (f"Pack pra {curto[:1].lower() + curto[1:]}", f"{slug}/")),
+    )
 
-    return head(titulo_pag, desc_meta, f"{SITE}img/{slug}/capa-kiwify.jpg", base, view_content=True) + f"""<body class="com-barra">
+    return head(titulo_pag, desc_meta, f"{SITE}img/{slug}/capa-kiwify.jpg", base, view_content=True, caminho=f"{slug}/",
+                og_alt=f"Capa do pack de Natal e Ano Novo pra {curto[:1].lower() + curto[1:]}: {total} artes pro Instagram",
+                ld=ld, preco=PRECO, imagens=imagens) + f"""<body class="com-barra">
 <a class="pular" href="#artes">Pular para as artes</a>
 {topo(base, slug, preco, url)}
 <main>
 
 <section class="hero" aria-labelledby="titulo">
   <div class="hero-texto">
-    <p class="rotulo">Pack de fim de ano pra {esc(curto[:1].lower() + curto[1:])}</p>
-    <h1 id="titulo"{' class="longo"' if len(h1) > 30 else ''}>{esc(h1)}</h1>
+    <h1 id="titulo"{' class="longo"' if len(h1) > 30 else ''}><span class="rotulo">{"Pack de Natal" if slug in ROTULO_CURTO else "Pack de Natal e Ano Novo"} pra {esc(curto[:1].lower() + curto[1:])}</span> {esc(h1)}</h1>
     <p class="hero-sub">{md_inline(v['sub'])}</p>
   </div>
   <div class="hero-compra">
@@ -971,7 +1165,7 @@ def pagina_pack(slug, pack):
   </div>
   <div class="hero-palco">
     <a class="hero-capa abre" href="{im('c1')}" data-cap="Carrossel, tela 1: {esc(titulo_arte(c1, pack))}">
-      <img class="arte" src="{im('c1')}" width="720" height="900" alt="{esc(alt_arte(c1, pack, 'Capa do carrossel'))}" fetchpriority="high">
+      <img class="arte" src="{im('c1')}" width="720" height="900" alt="{esc(alt_arte(c1, pack, f'Capa do carrossel {ctx}'))}" fetchpriority="high">
     </a>
     <div class="palco-lado">
     <figure class="celular" aria-label="Exemplo de perfil do Instagram com as artes do pack no feed">
@@ -1082,13 +1276,7 @@ def pagina_pack(slug, pack):
     {abre_duvidas}
   </div>
   <div class="lista-duvidas">
-    <details><summary>Preciso saber design?</summary><p>Não. No Canva você clica no texto e troca o nome, o @, o telefone e as datas. O resto já está pronto.</p></details>
-    <details><summary>Como eu recebo?</summary><p>Assim que o pagamento é aprovado, chega um e-mail da Kiwify com o acesso à área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa, o que pode levar até 3 dias úteis.</p></details>
-    <details><summary>Os PNGs já vêm com os meus dados?</summary><p>Não. Eles vêm com dados de exemplo ({esc(exemplo)}). Pra sair com os seus, edite os PDFs no Canva{ou_personalizado}.</p></details>
-    <details><summary>As fotos são minhas?</summary><p>As fotos de exemplo são de banco de imagem com licença livre (Unsplash). Ficam bonitas como estão, mas com fotos suas o perfil fica com a sua cara.</p></details>
-    {duv_regra}
-    <details><summary>E se eu não gostar?</summary><p>Você tem {GARANTIA}. Pede o reembolso pela Kiwify dentro desse prazo e o dinheiro volta.</p></details>
-    <details><summary>Até quando dá pra usar?</summary><p>As artes são pro período de 1º de dezembro até a volta em janeiro. O post de ano novo está com 2027.</p></details>
+    {lista_duv}
   </div>
 </section>
 
@@ -1147,7 +1335,16 @@ def pagina_ebook(slug, pasta, v, tipo, previas):
   <div class="cab"><h2 id="t-prev">Algumas páginas</h2><p>Toque numa página pra ver em tela cheia.</p></div>
   <ul class="fila-stories">{itens}</ul>
 </section>"""
-    return head(titulo, sub, f"{SITE}img/ebooks/{slug}.png", base, view_content=True) + f"""<body class="com-barra">
+    titulo_busca, desc_busca = SEO_PRODUTO.get(slug, (titulo, sub))
+    og = f"{SITE}img/ebooks/{slug}.png"
+    imagens = [og, f"{SITE}img/ebooks/{slug}-vertical.png"] + [f"{SITE}img/ebooks/{p}" for p in previas]
+    cam = f"ebooks/{slug}/"
+    ld = jsonld(
+        ld_produto(titulo, desc_busca, imagens[:3], url, pr, slug, "E-book em PDF" if tipo == "E-book" else "Material pra imprimir em PDF"),
+        ld_trilha(("Packs de Fim de Ano", ""), (h1.strip(), cam)),
+    )
+    return head(titulo_busca, desc_busca, og, base, view_content=True, caminho=cam, og_alt=f"Capa: {texto_puro(titulo)}",
+                ld=ld, preco=pr, imagens=imagens) + f"""<body class="com-barra">
 {topo(base, slug, pr, url)}
 <main>
 <section class="hero" aria-labelledby="titulo">
@@ -1216,7 +1413,7 @@ ordem_vitrine = [s for s in PRIMEIRO if s in pacotes] + sorted((s for s in pacot
 cards = []
 for slug in ordem_vitrine:
     estado = f"14 artes · {PRECO}" if links.get(slug) else "Em breve"
-    cards.append(f'<li><a href="{slug}/"><div class="foto"><img class="arte" src="img/{slug}/c1.jpg" width="720" height="900" alt="" loading="lazy"></div><b>{esc(nome_pack(slug, pacotes[slug]))}</b><span>{estado}</span></a></li>')
+    cards.append(f'<li><a href="{slug}/"><div class="foto"><img class="arte" src="img/{slug}/c1.jpg" width="720" height="900" alt="Capa do carrossel do pack de Natal e Ano Novo pra {esc(nome_pack(slug, pacotes[slug]).lower())}" loading="lazy"></div><b>{esc(nome_pack(slug, pacotes[slug]))}</b><span>{estado}</span></a></li>')
 
 eb_cards = []
 dst = AQUI / "img" / "ebooks"; dst.mkdir(parents=True, exist_ok=True)
@@ -1235,24 +1432,31 @@ for e in sorted(EBOOKS.glob("*/venda.md")) + EXTRAS:
     pd = AQUI / "ebooks" / slug; pd.mkdir(parents=True, exist_ok=True)
     (pd / "index.html").write_text(pagina_ebook(slug, pasta, v, tipo, previas))
     nome = (v["titulo"] or slug).split(":")[0]
-    eb_cards.append(f'<li><a href="ebooks/{slug}/"><div class="foto"><img class="arte" src="img/ebooks/{slug}.png" width="1080" height="1080" alt="" loading="lazy"></div><b>{esc(nome)}</b><span>{"E-book" if tipo == "E-book" else "Kit"} ·{NB}{v["preco"].replace(" ", NB)}</span></a></li>')
+    eb_cards.append(f'<li><a href="ebooks/{slug}/"><div class="foto"><img class="arte" src="img/ebooks/{slug}.png" width="1080" height="1080" alt="Capa: {esc(nome)}, {"e-book" if tipo == "E-book" else "kit pra imprimir"} em PDF" loading="lazy"></div><b>{esc(nome)}</b><span>{"E-book" if tipo == "E-book" else "Kit"} ·{NB}{v["preco"].replace(" ", NB)}</span></a></li>')
 
 CARGA = {True: 'fetchpriority="high"', False: 'loading="lazy"'}
 vitrine_capas = "".join(
     f'<a class="abre-pack" href="{s}/"><img class="arte" src="img/{s}/c1.jpg" width="720" height="900" alt="Capa do carrossel do pack pra {esc(nome_pack(s, pacotes[s]).lower())}" {CARGA[i == 0]}><span>{esc(nome_pack(s, pacotes[s]))}</span></a>'
     for i, s in enumerate(s for s in ("dentista", "salao-de-beleza", "advogado") if s in pacotes))
 
+ld_home = jsonld(
+    {"@context": "https://schema.org", "@type": "WebSite", "name": "Packs de Fim de Ano", "url": SITE, "inLanguage": "pt-BR",
+     "publisher": {"@type": "Organization", "name": MARCA}},
+    {"@context": "https://schema.org", "@type": "ItemList", "name": "Packs de artes de Natal e Ano Novo por profissão",
+     "itemListElement": [{"@type": "ListItem", "position": n, "url": f"{SITE}{s}/", "name": f"Pack pra {nome_pack(s, pacotes[s]).lower()}"}
+                         for n, s in enumerate(ordem_vitrine, 1)]},
+)
 AQUI.joinpath("index.html").write_text(head(
-    "Packs de Fim de Ano pro Instagram",
-    f"{len(cards)} packs de artes de Instagram prontas pro fim de ano, um pra cada profissão: carrossel, posts e stories. {PRECO} cada.",
-    f"{SITE}img/dentista/capa-kiwify.jpg", "") + f"""<body>
+    f"Packs de artes de Natal para Instagram por profissão | {PRECO.replace(NB, ' ')}",
+    f"{len(cards)} packs de artes de Natal e Ano Novo pro Instagram, um por profissão: dentista, salão de beleza, confeitaria, advogado e mais. Editáveis no Canva, {PRECO} cada.",
+    f"{SITE}img/dentista/capa-kiwify.jpg", "", caminho="", og_alt="Capa do pack de Natal e Ano Novo pra dentistas", ld=ld_home,
+    imagens=[f"{SITE}img/{s}/c1.jpg" for s in ordem_vitrine]) + f"""<body>
 <a class="pular" href="#packs">Pular para os packs</a>
 {topo("", None)}
 <main>
 <section class="vit-hero" aria-labelledby="titulo">
   <div>
-    <p class="rotulo">Packs de fim de ano pra {len(cards)} profissões</p>
-    <h1 id="titulo">Seu feed de dezembro, pronto.</h1>
+    <h1 id="titulo"><span class="rotulo">Packs de Natal e Ano Novo pra {len(cards)} profissões</span> Seu feed de dezembro, pronto.</h1>
     <p class="hero-sub">14 artes de Instagram por profissão: um carrossel de 6 telas, 4 posts e 4 stories de Natal, recesso e ano novo. {PRECO} cada, pra editar no Canva ou postar em PNG.</p>
     <p class="vit-confia">Pix, cartão ou boleto pela Kiwify · {GARANTIA}</p>
     <a class="btn" href="#packs">Escolher minha profissão</a>
@@ -1287,6 +1491,28 @@ AQUI.joinpath("index.html").write_text(head(
 </body>
 </html>
 """)
-print("site gerado:", len(cards), "packs,", len(eb_cards), "e-books/kits")
+# sitemap.xml (com as imagens de cada página, pro Google Imagens) e robots.txt
+import datetime
+hoje = datetime.date.today().isoformat()
+# páginas feitas à mão na pasta do site (ex.: afiliados/) também entram, a não ser que tenham noindex
+gerados = {c for c, _ in PAGINAS}
+for idx in sorted(AQUI.glob("*/index.html")):
+    cam = idx.parent.name + "/"
+    topo_html = idx.read_text()[:6000]
+    if cam in gerados or re.search(r'name="robots"[^>]*noindex', topo_html):
+        continue
+    og_m = re.search(r'property="og:image" content="([^"]+)"', topo_html)
+    PAGINAS.append((cam, [og_m.group(1)] if og_m and og_m.group(1).startswith(SITE) else []))
+xesc = lambda s: html.escape(s, quote=True)
+urls = []
+for cam, imgs in PAGINAS:
+    imgs_xml = "".join(f"\n    <image:image><image:loc>{xesc(i)}</image:loc></image:image>" for i in dict.fromkeys(imgs))
+    urls.append(f"  <url>\n    <loc>{xesc(SITE + cam)}</loc>\n    <lastmod>{hoje}</lastmod>{imgs_xml}\n  </url>")
+AQUI.joinpath("sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n'
+    + "\n".join(urls) + "\n</urlset>\n")
+AQUI.joinpath("robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n")
+
+print("site gerado:", len(cards), "packs,", len(eb_cards), "e-books/kits,", len(PAGINAS), "páginas no sitemap")
 for a in AVISOS:
     print("AVISO", a)
