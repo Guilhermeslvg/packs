@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
+    <loc>https://guilhermeslvg.github.io/packs/igreja/</loc>
+    <lastmod>2026-11-21</lastmod>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/capa-kiwify.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p01-convite-natal.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p02-cantata.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p03-ceia.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p04-agenda.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p05-virada.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p06-versiculo-2027.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p07-feliz-natal.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p08-horarios.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/p09-obrigado.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s01-convite-natal.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s02-cantata.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s03-horarios.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s04-feliz-natal.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s05-versiculo-2027.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s06-faltam-5.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s07-faltam-4.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s08-faltam-3.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s09-faltam-2.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s10-falta-1.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/igreja/s11-e-hoje.jpg</image:loc></image:image>
+  </url>
+  <url>
     <loc>https://guilhermeslvg.github.io/packs/academia/</loc>
     <lastmod>2026-11-21</lastmod>
     <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/academia/capa-kiwify.jpg</image:loc></image:image>
@@ -599,6 +624,52 @@
     <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/ferias-sem-tela-previa-1.jpg</image:loc></image:image>
     <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/ferias-sem-tela-previa-2.jpg</image:loc></image:image>
     <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/ferias-sem-tela-previa-3.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://guilhermeslvg.github.io/packs/ebooks/cardapio-natal-confeitaria/</loc>
+    <lastmod>2026-11-21</lastmod>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-capa.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-f1-cardapio-escuro.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-f2-cardapio-foto.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-f3-cardapio-arco.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-f4-tabela-encomenda.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-s1-cardapio-story.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-s2-tabela-story.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-s3-prazo-encomenda.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-s4-ultimas-vagas.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-etiquetas-exemplo-1.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-etiquetas-exemplo-2.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-etiquetas-close.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/cardapio-natal-confeitaria-msg-1.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://guilhermeslvg.github.io/packs/ebooks/dezembro-sem-tela/</loc>
+    <lastmod>2026-11-21</lastmod>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-capa.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-04.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-05.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-15.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-22.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-31.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-36.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-40.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/dezembro-sem-tela-pagina-53.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://guilhermeslvg.github.io/packs/ebooks/familia-na-mesa/</loc>
+    <lastmod>2026-11-21</lastmod>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-capa.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-21.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-40.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-13.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-51.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-03.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-04.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-58.jpg</image:loc></image:image>
+    <image:image><image:loc>https://guilhermeslvg.github.io/packs/img/ebooks/familia-na-mesa-pagina-65.jpg</image:loc></image:image>
   </url>
   <url>
     <loc>https://guilhermeslvg.github.io/packs/</loc>

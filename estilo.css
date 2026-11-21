@@ -277,6 +277,9 @@ details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
 @media (hover:hover){.vitrine a:hover img{transform:scale(1.03)}.vitrine a:hover b{color:var(--ouro)}}
 .vitrine a:active img{transform:scale(.985)}
 .vitrine b{display:block;font:600 18px/1.25 var(--sans);margin-top:10px;transition:color 200ms ease;text-wrap:balance}
+.vitrine.duas{grid-template-columns:1fr;gap:40px}
+/* kits no celular: o botão (com o preço no texto) ocupa a linha toda, embaixo do preço */
+@media (max-width:899px){.hero.kit .hero-compra .btn{grid-column:1/-1}}
 .vitrine span{display:block;font-size:15px;color:var(--apagado);margin-top:2px}
 .vit-como{display:grid;gap:22px;margin-top:28px}
 .vit-como p{max-width:44ch}
@@ -285,10 +288,24 @@ details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
 /* e-book */
 .eb-capa{display:block;width:78%;margin:6px auto 0}
 .eb-capa img{width:100%}
-.eb-lista{display:grid;gap:14px;margin-top:22px;max-width:62ch}
-.eb-lista li{padding-left:22px;position:relative}
+.eb-lista{margin-top:22px;max-width:62ch}
+.eb-lista li{padding-left:22px;position:relative;text-wrap:pretty;break-inside:avoid;padding-bottom:14px}
+.eb-lista.curta li b{display:block;font-weight:600}
+.eb-lista.curta li span{display:block;color:var(--apagado)}
 .eb-lista li::before{content:"";position:absolute;left:2px;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--ouro)}
 .eb-desc{font-size:18px;line-height:1.5;max-width:46ch}
+.eb-capa.a4{width:72%}
+.compra h2 .linha{display:block}
+/* kits novos: páginas em A4 ficam no mesmo trilho dos stories; grade de 9 posts sem órfão no celular */
+.grade-posts.nove li:last-child{grid-column:1/-1;width:calc(50% - 5px);justify-self:center}
+.sub-fila{font:600 16px/1.3 var(--sans);color:var(--apagado);margin:28px 0 12px}
+.sub-fila:first-of-type{margin-top:0}
+/* recorte da agenda (arte clara): começa logo abaixo do fio que separa o 24/12 do 31/12, sem degradê por cima do papel */
+.recorte-fio{aspect-ratio:720/222}
+/* "Aqui" logo abaixo da arte, com a seta pra cima apontando o rodapé (endereço e @) */
+.aqui.cima{top:calc(100% + 10px);left:5.5%;transform:none}
+.aqui.cima::before{right:auto;left:14px;top:auto;bottom:100%;transform:none;border-right-color:transparent;border-bottom-color:var(--ouro)}
+.recorte-fio+figcaption{margin-top:58px}
 
 /* tablet e computador */
 @media (min-width:900px){
@@ -384,9 +401,26 @@ details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
   .vit-como{grid-template-columns:repeat(3,1fr);gap:44px;margin-top:48px}
 
   .eb-capa{width:auto;margin:0}
-  .eb-lista{grid-template-columns:1fr 1fr;column-gap:48px;max-width:none}
+  .eb-capa.a4{width:82%;margin-left:auto}
+  /* duas colunas independentes: o espaço entre os itens é sempre o mesmo, sem buraco pelo item vizinho mais alto */
+  .eb-lista{column-count:2;column-gap:48px;max-width:none}
+  /* kits: o rótulo começa uns 40px abaixo do topo da arte, e o preço vem logo depois do texto */
+  .hero.kit{grid-template-rows:auto 1fr}
+  .hero.kit .hero-texto{align-self:start;padding-top:40px}
+  .hero.kit .hero-compra{align-self:start;margin:0}
+  /* igreja: o celular fica com 24px de respiro da arte (sem invadir 12px do post) */
+  .hero.ig .palco-lado{margin-left:24px}
+  /* stories em 6 colunas: fileira de 5 fica centralizada, sem vaga vazia no fim */
+  .fila-stories.seis{display:flex;flex-wrap:wrap;justify-content:center}
+  .fila-stories.seis li{width:calc((100% - 100px) / 6)}
+  .grade-posts.nove{grid-template-columns:repeat(3,1fr);gap:40px 24px}
+  .grade-posts.nove li:last-child{grid-column:auto;width:auto}
+  .fila-stories.seis{gap:20px}
+  .sub-fila{font-size:17px;margin:48px 0 16px}
 }
 @media (min-width:1200px){.vitrine{grid-template-columns:repeat(5,1fr)}}
+/* seções com poucos cards: 2 kits lado a lado, 6 e-books em 3x2 (sem linha meio vazia) */
+@media (min-width:900px){.vitrine.duas{grid-template-columns:repeat(2,1fr);gap:48px 32px}.vitrine.tres{grid-template-columns:repeat(3,1fr);gap:56px 32px}.vitrine.duas b,.vitrine.tres b{font-size:22px}}
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}

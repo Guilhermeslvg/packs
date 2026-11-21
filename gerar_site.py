@@ -108,6 +108,8 @@ SEO_PRODUTO = {
                         "40 brincadeiras pra imprimir e jogar na ceia, na confraternização da firma e na virada: quiz, mímica, bingo natalino e amigo secreto. PDF, R$ 17,90."),
     "cardapio-natal-confeitaria": ("Cardápio de Natal para confeitaria no Canva | R$ 19,90",
                                    "Cardápio de Natal pro feed e pro story, tabela de encomendas P/M/G, etiquetas pra caixa e mensagens de WhatsApp. Editável no Canva, R$ 19,90."),
+    "igreja": ("Artes de Natal para igreja | Culto da virada | R$ 27",
+               "20 artes pro Instagram da igreja: culto de Natal, cantata, ceia, culto da virada e contagem regressiva, com legenda pra cada uma. Editável no Canva, R$ 27."),
 }
 
 # quem fez: foto e Instagram de verdade do Guilherme
@@ -398,6 +400,9 @@ details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
 @media (hover:hover){.vitrine a:hover img{transform:scale(1.03)}.vitrine a:hover b{color:var(--ouro)}}
 .vitrine a:active img{transform:scale(.985)}
 .vitrine b{display:block;font:600 18px/1.25 var(--sans);margin-top:10px;transition:color 200ms ease;text-wrap:balance}
+.vitrine.duas{grid-template-columns:1fr;gap:40px}
+/* kits no celular: o botão (com o preço no texto) ocupa a linha toda, embaixo do preço */
+@media (max-width:899px){.hero.kit .hero-compra .btn{grid-column:1/-1}}
 .vitrine span{display:block;font-size:15px;color:var(--apagado);margin-top:2px}
 .vit-como{display:grid;gap:22px;margin-top:28px}
 .vit-como p{max-width:44ch}
@@ -406,10 +411,24 @@ details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
 /* e-book */
 .eb-capa{display:block;width:78%;margin:6px auto 0}
 .eb-capa img{width:100%}
-.eb-lista{display:grid;gap:14px;margin-top:22px;max-width:62ch}
-.eb-lista li{padding-left:22px;position:relative}
+.eb-lista{margin-top:22px;max-width:62ch}
+.eb-lista li{padding-left:22px;position:relative;text-wrap:pretty;break-inside:avoid;padding-bottom:14px}
+.eb-lista.curta li b{display:block;font-weight:600}
+.eb-lista.curta li span{display:block;color:var(--apagado)}
 .eb-lista li::before{content:"";position:absolute;left:2px;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--ouro)}
 .eb-desc{font-size:18px;line-height:1.5;max-width:46ch}
+.eb-capa.a4{width:72%}
+.compra h2 .linha{display:block}
+/* kits novos: páginas em A4 ficam no mesmo trilho dos stories; grade de 9 posts sem órfão no celular */
+.grade-posts.nove li:last-child{grid-column:1/-1;width:calc(50% - 5px);justify-self:center}
+.sub-fila{font:600 16px/1.3 var(--sans);color:var(--apagado);margin:28px 0 12px}
+.sub-fila:first-of-type{margin-top:0}
+/* recorte da agenda (arte clara): começa logo abaixo do fio que separa o 24/12 do 31/12, sem degradê por cima do papel */
+.recorte-fio{aspect-ratio:720/222}
+/* "Aqui" logo abaixo da arte, com a seta pra cima apontando o rodapé (endereço e @) */
+.aqui.cima{top:calc(100% + 10px);left:5.5%;transform:none}
+.aqui.cima::before{right:auto;left:14px;top:auto;bottom:100%;transform:none;border-right-color:transparent;border-bottom-color:var(--ouro)}
+.recorte-fio+figcaption{margin-top:58px}
 
 /* tablet e computador */
 @media (min-width:900px){
@@ -505,9 +524,26 @@ details p{padding:0 18px 20px;color:#e3d8cb;max-width:62ch}
   .vit-como{grid-template-columns:repeat(3,1fr);gap:44px;margin-top:48px}
 
   .eb-capa{width:auto;margin:0}
-  .eb-lista{grid-template-columns:1fr 1fr;column-gap:48px;max-width:none}
+  .eb-capa.a4{width:82%;margin-left:auto}
+  /* duas colunas independentes: o espaço entre os itens é sempre o mesmo, sem buraco pelo item vizinho mais alto */
+  .eb-lista{column-count:2;column-gap:48px;max-width:none}
+  /* kits: o rótulo começa uns 40px abaixo do topo da arte, e o preço vem logo depois do texto */
+  .hero.kit{grid-template-rows:auto 1fr}
+  .hero.kit .hero-texto{align-self:start;padding-top:40px}
+  .hero.kit .hero-compra{align-self:start;margin:0}
+  /* igreja: o celular fica com 24px de respiro da arte (sem invadir 12px do post) */
+  .hero.ig .palco-lado{margin-left:24px}
+  /* stories em 6 colunas: fileira de 5 fica centralizada, sem vaga vazia no fim */
+  .fila-stories.seis{display:flex;flex-wrap:wrap;justify-content:center}
+  .fila-stories.seis li{width:calc((100% - 100px) / 6)}
+  .grade-posts.nove{grid-template-columns:repeat(3,1fr);gap:40px 24px}
+  .grade-posts.nove li:last-child{grid-column:auto;width:auto}
+  .fila-stories.seis{gap:20px}
+  .sub-fila{font-size:17px;margin:48px 0 16px}
 }
 @media (min-width:1200px){.vitrine{grid-template-columns:repeat(5,1fr)}}
+/* seções com poucos cards: 2 kits lado a lado, 6 e-books em 3x2 (sem linha meio vazia) */
+@media (min-width:900px){.vitrine.duas{grid-template-columns:repeat(2,1fr);gap:48px 32px}.vitrine.tres{grid-template-columns:repeat(3,1fr);gap:56px 32px}.vitrine.duas b,.vitrine.tres b{font-size:22px}}
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -728,7 +764,7 @@ def topo(base, slug=None, preco="R$ 27", url=None):
         direita = f'<a class="topo-comprar" href="{esc(url)}" data-compra data-valor="{valor(preco)}">Comprar por {preco}</a>'
     else:
         direita = '<span class="topo-comprar off">Em breve</span>'
-    return f"""<header class="topo">
+    return f"""<header class="topo" id="topo">
   <div class="topo-in">
     <a class="marca" href="{base or './'}">Packs de Fim de Ano</a>
     {direita}
@@ -786,6 +822,9 @@ def quem_fez(base, texto):
 
 def nome_pack(slug, pack):
     return NOMES.get(slug) or pack.get("titulo", slug).split("·")[-1].strip()
+
+
+TODOS = "Ver todos os packs e kits"   # rodapé da igreja e dos kits (não são profissão)
 
 
 def rodape(base, frase, extra="", link=("", "Ver os packs de todas as profissões"), cta=""):
@@ -1390,15 +1429,565 @@ def pagina_ebook(slug, pasta, v, tipo, previas):
 
 
 # ----------------------------------------------------------------------------------------------
+# imagens dos produtos novos: PNG da pasta do produto -> JPG otimizado em img/ (só refaz se a fonte mudou)
+# ----------------------------------------------------------------------------------------------
+def jpg(src, dst, max_lado, qualidade=80):
+    src, dst = pathlib.Path(src), AQUI / dst
+    if not src.exists():
+        AVISOS.append(f"imagem não encontrada: {src}")
+        return False
+    if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
+        return True
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", str(qualidade), "-Z", str(max_lado), str(src), "--out", str(dst)],
+                   check=True, capture_output=True)
+    return True
+
+
+# ----------------------------------------------------------------------------------------------
+# Pack Igreja (9 posts + 11 stories, sem carrossel): mesma página dos packs, com as seções que esse pack tem
+# ----------------------------------------------------------------------------------------------
+IGREJA_DESTAQUES = [("s01-convite-natal", "Natal"), ("s02-cantata", "Cantata"), ("s03-horarios", "Agenda"), ("s11-e-hoje", "Virada")]
+# ordem no feed do celular de exemplo: o mais novo em cima, como no Instagram
+IGREJA_FEED = ["p06-versiculo-2027", "p09-obrigado", "p05-virada", "p07-feliz-natal", "p08-horarios", "p01-convite-natal", "p02-cantata", "p03-ceia", "p04-agenda"]
+# calendário: o do pack (aula da Kiwify) + a dica de cada story que está na legenda dele no pack.json
+IGREJA_DATAS = [
+    ("Começo de dezembro", "“Nossa agenda de dezembro” no feed.", [("p04-agenda", 0)]),
+    ("Semana da ceia e da cantata", "“Sábado é dia da ceia de Natal” e “Domingo tem cantata de Natal” no feed. O story da cantata vai a partir do dia 14.",
+     [("p03-ceia", 0), ("p02-cantata", 0), ("s02-cantata", 1)]),
+    ("A partir do dia 17", "Convite do culto de Natal no feed. O story vai uma semana antes e de novo na manhã do dia 24.",
+     [("p01-convite-natal", 0), ("s01-convite-natal", 1)]),
+    ("Semanas do Natal e da virada", "“Fim de ano com horário especial” no feed e nos stories.", [("p08-horarios", 0), ("s03-horarios", 1)]),
+    ("25 de dezembro", "“Feliz Natal” no feed e nos stories, de manhã.", [("p07-feliz-natal", 0), ("s04-feliz-natal", 1)]),
+    ("De 26 a 30 de dezembro", "Convite do culto da virada no feed e a contagem regressiva nos stories, um por dia, sempre no mesmo horário.",
+     [("p05-virada", 0), ("s06-faltam-5", 1), ("s10-falta-1", 1)]),
+    ("31 de dezembro", "“É hoje” nos stories, de manhã e de novo no fim da tarde.", [("s11-e-hoje", 1)]),
+    ("1º de janeiro", "O versículo do ano no feed e nos stories.", [("p06-versiculo-2027", 0), ("s05-versiculo-2027", 1)]),
+]
+
+
+# legenda curta de cada arte (o texto grande dela); o alt completo sai do pack.json em texto_igreja()
+IGREJA_TITULOS = {
+    "p01-convite-natal": "Convite do culto de Natal", "p02-cantata": "Domingo tem cantata de Natal",
+    "p03-ceia": "Sábado é dia da ceia de Natal", "p04-agenda": "Nossa agenda de dezembro",
+    "p05-virada": "Venha pro culto da virada", "p06-versiculo-2027": "Versículo do ano 2027", "p07-feliz-natal": "Feliz Natal",
+    "p08-horarios": "Fim de ano com horário especial", "p09-obrigado": "Obrigado por caminhar com a gente em 2026",
+    "s01-convite-natal": f"Culto de Natal, 24/12 às{NB}19h", "s02-cantata": f"Cantata de Natal, 20/12 às{NB}19h",
+    "s03-horarios": "Fim de ano com horário especial", "s04-feliz-natal": "Feliz Natal", "s05-versiculo-2027": "Nosso versículo de 2027",
+    "s06-faltam-5": "Faltam 5 dias", "s07-faltam-4": "Faltam 4 dias", "s08-faltam-3": "Faltam 3 dias",
+    "s09-faltam-2": "Faltam 2 dias", "s10-falta-1": "Falta 1 dia", "s11-e-hoje": "É hoje: culto da virada",
+}
+
+
+def texto_igreja(d, pack):
+    """Todo o texto que aparece na arte, na ordem de leitura (pro alt)."""
+    def t(x):
+        x = re.sub(r"\{(\w+)\}", lambda m: str(pack.get(m.group(1)) or ""), str(x or ""))
+        x = re.sub(r"(?<=[^\s>])(?:</b>)?<(?:b|small)>", ". ", x)       # "virada<b>Quinta" e "22h</b><small>Rua" viram frases
+        return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", x)).strip()
+    fino, serif, apoio = t(d.get("fino")), t(d.get("serif")), t(d.get("apoio"))
+    if d.get("numeral"):
+        n = d["numeral"]
+        txt = f"{fino} {n} {'dia' if n == '1' else 'dias'} {apoio}"
+    else:
+        liga = " " if re.search(r"(\b(pro|pra|da|de|do|tem|com|em|no|na)|,)$", fino) else ". "
+        cab = liga.join(x for x in [fino, serif, t(d.get("fino2"))] if x).replace(". de Natal", " de Natal")
+        itens = ". ".join(f"{t(i[0])}: {t(i[1])}" for i in d.get("itens") or [])
+        txt = ponto(cab) + " " + " ".join(x for x in [ponto(itens) if itens else "", apoio] if x)
+    txt = re.sub(r"\s+([.,:;])", r"\1", txt.strip())
+    txt = re.sub(r"([.!?”])\.", r"\1", txt)
+    return ponto(txt)
+
+
+def pagina_igreja(slug, pack):
+    v = ler_venda(PACKS / "packs" / slug / "venda.md")
+    url = links.get(slug)
+    preco, base = PRECO, "../"
+    im = lambda i: f"{base}img/{slug}/{i}.jpg"
+    posts, sts = pack["posts"], pack["stories"]
+    total = len(posts) + len(sts)
+    todas = {d["id"]: d for d in posts + sts}
+    bl = v["bullets"]
+    achar = lambda rx: next((b for b in bl if re.match(rx, b, re.I)), "")
+    arroba = (pack.get("arroba") or "@seuperfil").lstrip("@")
+    nome = pack.get("negocio") or ""
+    ctx = "do pack de Natal e virada pra igreja"
+
+    destaques = "".join(f'<span><img src="{im(i)}" width="720" height="1280" alt="" loading="lazy"><i>{esc(n)}</i></span>' for i, n in IGREJA_DESTAQUES)
+    grade = "".join(f'<img src="{im(i)}" width="720" height="900" alt="" loading="lazy">' for i in IGREJA_FEED if i in todas)
+    p1 = posts[0]
+
+    def item(d, tipo, w, h):
+        t = IGREJA_TITULOS.get(d["id"], d["id"])
+        return (f'<li><a class="abre" href="{im(d["id"])}" data-cap="{tipo}: {esc(t)}">'
+                f'<img class="arte" src="{im(d["id"])}" width="{w}" height="{h}" alt="{esc(f"{tipo} {ctx}: " + texto_igreja(d, pack))}" loading="lazy"></a>'
+                f'<span class="legenda">{esc(t)}</span></li>')
+    ordem_posts = [d for d in posts if d["id"] != "p07-feliz-natal"] + [d for d in posts if d["id"] == "p07-feliz-natal"]
+    grade_posts = "".join(item(d, "Post", 720, 900) for d in ordem_posts)
+    natal = [d for d in sts if not d["id"].startswith(("s06", "s07", "s08", "s09", "s10", "s11"))]
+    virada = [d for d in sts if d not in natal]
+    fila_natal = "".join(item(d, "Story", 720, 1280) for d in natal)
+    fila_virada = "".join(item(d, "Story", 720, 1280) for d in virada)
+
+    b_posts = achar(r"9 posts")
+    desc_posts = cap1(re.sub(r"^9 posts de feed:\s*", "", b_posts)) if b_posts else ""
+    b_sts = achar(r"11 stories")
+    desc_sts = ponto(cap1(re.sub(r"^11 stories,\s*", "", b_sts))) if b_sts else ""
+
+    # quando postar: conferência igual à dos outros packs (miniatura sem citação na frase vira aviso)
+    def mini(ids):
+        return "".join(f'<img class="arte{" st" if st else ""}" src="{im(i)}" width="720" height="{1280 if st else 900}" alt="" loading="lazy">' for i, st in ids)
+    for q, o, m in IGREJA_DATAS:
+        for i, _ in m:
+            if i not in todas:
+                AVISOS.append(f"{slug}: miniatura {i} não existe no pack.json")
+    lis_datas = "".join(f'<li><p class="quando">{q}</p><div class="mini" aria-hidden="true">{mini(m)}</div><p class="oque">{esc(o)}</p></li>' for q, o, m in IGREJA_DATAS)
+
+    pg_posts = contar_paginas(PACKS / "saida" / slug / "canva-posts.pdf")
+    pg_sts = contar_paginas(PACKS / "saida" / slug / "canva-stories.pdf")
+    pasta = [("posts", f"{len(posts)} JPG · 1080×1350"), ("stories", f"{len(sts)} JPG · 1080×1920")]
+    if pg_posts: pasta.append(("canva-posts.pdf", f"{pg_posts} páginas"))
+    if pg_sts: pasta.append(("canva-stories.pdf", f"{pg_sts} páginas"))
+    pasta.append(("legendas", "PDF e Word"))
+    lis_pasta = "".join(f"<li><code>{n}</code><small>{q}</small></li>" for n, q in pasta)
+
+    exemplo = ", ".join(x for x in [nome, pack.get("endereco"), "@" + arroba] if x)
+    duvidas = [
+        ("Preciso saber design?", "Não. No Canva você clica no texto e troca o nome da igreja, o endereço, as datas e os horários. O resto já está pronto."),
+        ("Como eu recebo?", "Assim que o pagamento é aprovado, chega um e-mail da Kiwify com o acesso à área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa, o que pode levar até 3 dias úteis."),
+        ("As artes já vêm com o nome da minha igreja?", f"Não. Elas vêm com dados de exemplo ({esc(exemplo)}). Pra sair com os seus, edite os PDFs no Canva."),
+        ("Serve pra igreja católica?", "Os versículos são da Bíblia Livre, sempre com a referência, num texto que serve pra igreja evangélica e católica. Onde está “culto”, dá pra trocar por “missa” ou “celebração” no Canva em poucos segundos."),
+        ("De onde são as imagens?", "São pinturas antigas de Natal em domínio público e fotos com licença livre (Wikimedia Commons e Unsplash). Nenhuma foi gerada por IA. Ficam bonitas como estão, mas com fotos da sua igreja o perfil fica com a cara de vocês."),
+        ("E se eu não gostar?", f"Você tem {GARANTIA}. Pede o reembolso pela Kiwify dentro desse prazo e o dinheiro volta."),
+        ("Até quando dá pra usar?", "As artes vão do começo de dezembro ao dia 1º de janeiro. O versículo do ano está com 2027."),
+    ]
+    lista_duv = "\n    ".join(f"<details><summary>{q}</summary><p>{r}</p></details>" for q, r in duvidas)
+
+    nome_produto = v["titulo"] or "Pack Igreja"
+    titulo_pag, desc_meta = SEO_PRODUTO[slug]
+    abs_img = lambda i: f"{SITE}img/{slug}/{i}.jpg"
+    imagens = [abs_img("capa-kiwify")] + [abs_img(d["id"]) for d in posts + sts]
+    ld = jsonld(
+        ld_produto(nome_produto, desc_meta, imagens[:4], url, PRECO, slug, "Artes para Instagram"),
+        ld_faq(duvidas),
+        ld_trilha(("Packs de Fim de Ano", ""), ("Pack pra igreja", f"{slug}/")),
+    )
+    p04 = todas.get("p04-agenda", posts[0])
+    return head(titulo_pag, desc_meta, abs_img("capa-kiwify"), base, view_content=True, caminho=f"{slug}/",
+                og_alt=f"Capa do Pack Igreja: {total} artes de Natal e virada pro Instagram", ld=ld, preco=PRECO, imagens=imagens) + f"""<body class="com-barra">
+<a class="pular" href="#artes">Pular para as artes</a>
+{topo(base, slug, preco, url)}
+<main>
+
+<section class="hero ig" aria-labelledby="titulo">
+  <div class="hero-texto">
+    <h1 id="titulo"><span class="rotulo">Pack de Natal e Culto da Virada pra igreja</span> O dezembro da igreja, pronto.</h1>
+    <p class="hero-sub">{md_inline(v['sub'])}</p>
+  </div>
+  <div class="hero-compra">
+    <span class="preco-valor">{PRECO}</span>
+    {botao(url, "Comprar o pack", preco, ident="cta-hero")}
+    <p class="seguro">{CONFIA}</p>
+  </div>
+  <div class="hero-palco">
+    <a class="hero-capa abre" href="{im(p1['id'])}" data-cap="Post: {esc(IGREJA_TITULOS.get(p1['id'], ''))}">
+      <img class="arte" src="{im(p1['id'])}" width="720" height="900" alt="{esc(f'Post {ctx}: ' + texto_igreja(p1, pack))}" fetchpriority="high">
+    </a>
+    <div class="palco-lado">
+    <figure class="celular" aria-label="Exemplo de perfil do Instagram com as artes do pack no feed">
+      <div class="cel-tela">
+        <div class="cel-status" aria-hidden="true"><span>9:41</span><span class="cel-ilha"></span><span class="cel-bat"></span></div>
+        <div class="ig-topo"><b>{esc(arroba)}</b></div>
+        <div class="ig-perfil">
+          <span class="ig-avatar" aria-hidden="true">{esc(pack.get('monograma') or 'IE')}</span>
+          <div class="ig-nome"><b>{esc(nome)}</b><span>{esc(pack.get('endereco') or '')}</span><span>{esc(pack.get('cidade') or '')}</span></div>
+        </div>
+        <div class="ig-botoes" aria-hidden="true"><span>Seguir</span><span>Mensagem</span></div>
+        <div class="ig-destaques" aria-hidden="true">{destaques}</div>
+        <div class="ig-grade">{grade}</div>
+      </div>
+    </figure>
+    <p class="palco-nota">Perfil de exemplo. Nome, endereço e @ você troca pelos seus.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bloco posts" id="artes" aria-labelledby="t-posts">
+  <div class="cab">
+    <h2 id="t-posts">{len(posts)} posts pro feed</h2>
+    <p>{md_inline(ponto(desc_posts))} Formato 1080×1350, que aparece inteiro no feed.</p>
+  </div>
+  <ul class="grade-posts nove">{grade_posts}</ul>
+</section>
+
+<section class="bloco stories" aria-labelledby="t-stories">
+  <div class="cab">
+    <h2 id="t-stories">{len(sts)} stories</h2>
+    <p>{md_inline(desc_sts)} Formato 1080×1920.</p>
+  </div>
+  <h3 class="sub-fila">Natal, horários e versículo do ano</h3>
+  <ul class="fila-stories seis">{fila_natal}</ul>
+  <h3 class="sub-fila">Semana da virada</h3>
+  <ul class="fila-stories seis">{fila_virada}</ul>
+</section>
+
+<section class="bloco agenda" aria-labelledby="t-agenda">
+  <div class="cab">
+    <h2 id="t-agenda">Quando postar cada uma</h2>
+    <p>O pack já vem com as datas que importam em ordem. Esta é a sugestão de calendário que acompanha os arquivos.</p>
+  </div>
+  <ol class="datas">{lis_datas}</ol>
+</section>
+
+<section class="bloco dados" aria-labelledby="t-dados">
+  <div class="dados-texto">
+    <h2 id="t-dados">Os dados da sua igreja no lugar certo</h2>
+    <p class="declara">Nome da igreja, endereço, datas e horários abrem como texto editável nos PDFs do Canva. Cada arte tem uma legenda pronta, em PDF e em Word.</p>
+    <p class="aviso">Onde está “culto”, dá pra trocar por “missa” ou “celebração” no Canva em poucos segundos.</p>
+  </div>
+  <figure class="dados-prova">
+    <div class="recorte recorte-fio"><img class="arte" src="{im(p04['id'])}" width="720" height="900" alt="Detalhe do post da agenda de dezembro: o culto da virada no dia 31 e o rodapé com endereço e @ de exemplo" loading="lazy"><span class="aqui cima">Aqui</span></div>
+    <figcaption>Endereço e @ ficam no rodapé de cada arte, e o nome da igreja no alto. As datas e os horários você troca no mesmo PDF.</figcaption>
+  </figure>
+</section>
+
+<section class="creme" aria-labelledby="t-como">
+  <div class="creme-in">
+    <h2 id="t-como">Como você recebe</h2>
+    <ol class="passos">
+      <li><b>Paga na Kiwify</b><span>Pix, cartão ou boleto. A Kiwify processa o pagamento e guarda os arquivos.</span></li>
+      <li><b>Recebe o acesso por e-mail</b><span>Com o login da área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa.</span></li>
+      <li><b>Baixa os arquivos</b><ul class="pasta">{lis_pasta}</ul></li>
+      <li><b>Troca os dados e posta</b><span>No Canva você troca nome da igreja, endereço, datas, horários e, se quiser, as fotos de exemplo pelas da sua igreja.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="bloco compra" id="comprar" aria-labelledby="t-compra">
+  <div class="compra-arte" aria-hidden="true"><img class="arte" src="{im('p07-feliz-natal')}" width="720" height="900" alt="" loading="lazy"></div>
+  <div class="compra-texto">
+    <h2 id="t-compra">O dezembro da igreja pronto por {PRECO}</h2>
+    <ul class="leva">
+      <li>{len(posts)} posts de feed</li>
+      <li>{len(sts)} stories, com a contagem regressiva da{NB}virada</li>
+      <li>Legenda pronta pra cada arte</li>
+      <li>JPG em alta e PDF pro Canva</li>
+    </ul>
+    {botao(url, f"Comprar o pack por {PRECO}", preco, cls="btn btn-grande")}
+    <div class="garantias">
+      <p><b>{GARANTIA}.</b> Se não gostar, pede o reembolso na Kiwify dentro de 7{NB}dias e recebe o dinheiro de volta.</p>
+      <p><b>Pagamento seguro.</b> Pix, cartão ou boleto, processado pela Kiwify.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bloco duvidas" aria-labelledby="t-duvidas">
+  <div>
+    <h2 id="t-duvidas">Dúvidas</h2>
+  </div>
+  <div class="lista-duvidas">
+    {lista_duv}
+  </div>
+</section>
+
+{quem_fez(base, "Faço artes de Instagram pra negócios locais, e montei este pack com as datas que a igreja mais precisa avisar em dezembro: ceia, cantata, culto de Natal, horários e a semana da virada.")}
+</main>
+{rodape(base, "Boas festas pra sua igreja.", "Imagens de exemplo: pinturas em domínio público, Wikimedia Commons e Unsplash. Versículos: Bíblia Livre (CC BY 4.0). ", ("", TODOS), cta=botao(url, f"Comprar o pack por {PRECO}", preco, cls="btn btn-grande", ident="comprar-fim"))}
+{barra(url, PRECO, GARANTIA, "Comprar o pack")}
+{LUZ}<script src="{base}site.js" defer></script>
+</body>
+</html>
+"""
+
+
+# ----------------------------------------------------------------------------------------------
+# kits novos (sem capa vertical nem previa-N.png): página igual à dos e-books, com as imagens reais do kit
+# itens: (arquivo de origem relativo à pasta do produto, legenda). As imagens viram JPG em img/ebooks/.
+# ----------------------------------------------------------------------------------------------
+_CARD = "kit/cardapio-natal-confeitaria"
+_RECEBE = f"Assim que o pagamento é aprovado, chega um e-mail da Kiwify com o acesso à área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa, o que pode levar até 3 dias úteis."
+_GARANTE = f"Você tem {GARANTIA}. Pede o reembolso pela Kiwify dentro desse prazo e o dinheiro volta."
+KITS = {
+    "cardapio-natal-confeitaria": {
+        "pasta": AQUI.parent / "cardapio-natal-confeitaria", "vitrine": "instagram",
+        "rotulo": "Kit editável no Canva", "cta": "kit",
+        "compra": ["Cardápio de Natal", f"da{NB}Confeitaria"],
+        "hero": (f"{_CARD}/1-artes-com-exemplo/f1-cardapio-escuro.png", "Cardápio de Natal pro feed, fundo escuro"),
+        "resumo": "O que a confeiteira usa no Natal: cardápio, tabela de preços por tamanho, stories de prazo, etiqueta da caixa e mensagens pra fechar cada pedido.",
+        # o venda.md fala em "encomendas até dia X" (o nome da arte); no site fica a descrição dela
+        "trocas": {'Story "encomendas até dia X" com calendário de dezembro e story "últimas vagas" com a agenda do dia 24':
+                   "Story de prazo das encomendas, com o calendário de dezembro, e story de últimas vagas, com a agenda do dia 24"},
+        "secoes": [
+            ("4 artes pro feed", "3 layouts de cardápio de Natal e a tabela de encomendas com sabor, tamanho P/M/G e preço. Formato 1080×1350.", "posts", [
+                (f"{_CARD}/1-artes-com-exemplo/f1-cardapio-escuro.png", "Cardápio de Natal, fundo escuro"),
+                (f"{_CARD}/1-artes-com-exemplo/f2-cardapio-foto.png", "Cardápio de Natal com foto"),
+                (f"{_CARD}/1-artes-com-exemplo/f3-cardapio-arco.png", "Cardápio de encomendas em arco"),
+                (f"{_CARD}/1-artes-com-exemplo/f4-tabela-encomenda.png", "Tabela de encomendas P/M/G"),
+            ]),
+            ("4 stories", "O cardápio, a tabela, o prazo das encomendas com o calendário de dezembro e as últimas vagas com a agenda do dia 24. Formato 1080×1920.", "stories", [
+                (f"{_CARD}/1-artes-com-exemplo/s1-cardapio-story.png", "Cardápio de Natal no story"),
+                (f"{_CARD}/1-artes-com-exemplo/s2-tabela-story.png", "Tabela de encomendas no story"),
+                (f"{_CARD}/1-artes-com-exemplo/s3-prazo-encomenda.png", "Encomendas de Natal até dia 18/12"),
+                (f"{_CARD}/1-artes-com-exemplo/s4-ultimas-vagas.png", "Últimas vagas pra retirada no dia 24"),
+            ]),
+            ("Pra imprimir e pro WhatsApp", "Etiquetas pra caixa em folha A4 e as 5 mensagens prontas pra confirmar o pedido, cobrar o sinal e lembrar da retirada.", "stories", [
+                ("build/etiquetas-exemplo-1.png", "12 etiquetas redondas pra caixa"),
+                ("build/etiquetas-exemplo-2.png", "10 etiquetas de 9 × 5 cm com campos do pedido"),
+                ("build/_etiquetas-close.png", "Etiqueta de 9 × 5 cm preenchida"),   # close montado com scratchpad/scripts78/etiqueta_close.py
+                ("build/_msg-1.png", "5 mensagens pra confirmar o pedido"),
+            ]),
+        ],
+        "leva": ["4 artes de feed e 4 stories", "Versão em branco pra escrever no celular", "22 etiquetas pra caixa em A4", "5 mensagens de WhatsApp"],
+        "arquivos": [("parte-1-artes.zip", "8 artes com exemplo e o guia"), ("parte-2-em-branco-e-extras.zip", "artes em branco, etiquetas e mensagens"),
+                     ("canva-feed.pdf", "4 páginas"), ("canva-stories.pdf", "4 páginas"), ("canva-etiquetas.pdf", "2 páginas")],
+        "passo4": ("Troca os dados e posta", "No Canva você troca os doces, os preços e as datas. Pelo celular, abre a arte em branco e escreve por cima com o texto do Instagram."),
+        "fim": "Boas encomendas.",
+        # tudo tirado do guia COMO-USAR do kit (build/guia.html)
+        "duvidas": [
+            ("Preciso do Canva Pro?", "Não. No Canva grátis você importa o PDF em Criar design › Importar arquivo e os textos abrem editáveis. As fontes do kit, Fraunces e DM Sans, existem no Canva."),
+            ("Dá pra mudar os preços?", "Dá. No Canva você clica duas vezes no texto e troca o nome do doce, o peso e o preço, e apaga a linha que não usar. Sem Canva, salve a arte em branco e escreva por cima com o texto do Instagram."),
+            ("Como eu recebo?", _RECEBE),
+            ("E se eu não gostar?", _GARANTE),
+        ],
+    },
+    "dezembro-sem-tela": {
+        "pasta": AQUI.parent / "dezembro-sem-tela", "vitrine": "ebooks",
+        "rotulo": "Kit em PDF pra imprimir", "cta": "kit",
+        "compra": [f"Dezembro sem{NB}Tela"],
+        "sub": "50 atividades de Natal em 58 páginas A4, separadas por idade, pra crianças de 3 a 9 anos.",
+        "hero": ("previa-paginas/pagina-01.png", "Capa do Dezembro sem Tela"), "a4": True,
+        "resumo": "Folhas de Natal pra criança fazer com papel, lápis e tesoura, em três faixas de idade, e um calendário de 20 minutos sem tela por dia até o dia 24.",
+        # lista curta (título + 1 linha); o detalhe de cada faixa de idade está nas Dúvidas
+        "dentro": [
+            ("Calendário de 1 a 24 de dezembro", "20 minutos sem tela por dia"),
+            ("3 a 5 anos", "labirintos, ligue os pontos, colorir e recorte"),
+            ("6 e 7 anos", "caça-palavras, pinte pelo número e contas"),
+            ("8 e 9 anos", "cruzadinha, sudoku, 7 erros e estrela 3D"),
+            ("Pra todas as idades", "carta pro Papai Noel e certificado"),
+            ("Respostas no final", "dos labirintos, caça-palavras e sudoku"),
+        ],
+        "secoes": [
+            ("Algumas páginas", "As 50 atividades ocupam 58 páginas em A4, junto com a capa, o recado, o sumário e as respostas. Fundo branco, pra gastar pouca tinta. Toque numa página pra ver em tela cheia.", "stories", [
+                ("previa-paginas/pagina-04.png", "Calendário de 1 a 24 de dezembro"),
+                ("previa-paginas/pagina-05.png", "16 missões do ajudante do Natal"),
+                ("previa-paginas/pagina-15.png", "Árvore pra enfeitar (3 a 5 anos)"),
+                ("previa-paginas/pagina-22.png", "Bolas de papel pra pendurar (3 a 5 anos)"),
+                ("previa-paginas/pagina-31.png", "Pinte pelo número (6 e 7 anos)"),
+                ("previa-paginas/pagina-36.png", "Quebra-cabeça do Papai Noel (6 e 7 anos)"),
+                ("previa-paginas/pagina-40.png", "Labirinto da bola de Natal (8 e 9 anos)"),
+                ("previa-paginas/pagina-53.png", "Certificado de Ajudante do Natal"),
+            ]),
+        ],
+        "leva": ["50 atividades separadas por idade", "Calendário de 1 a 24 de dezembro", "Certificado de Ajudante do Natal", "58 páginas A4, fundo branco"],
+        "arquivos": [("dezembro-sem-tela.pdf", "58 páginas A4")],
+        "passo4": ("Imprime e usa", "Em A4 comum, marcando “tamanho real” ou “100%” na impressora. Comece pelo calendário e pendure na geladeira."),
+        "fim": "Bom Natal longe da tela.",
+        # tudo do venda.md e da aula da Kiwify (produto.json)
+        "duvidas": [
+            ("É físico ou digital?", "Digital. É um PDF que você baixa e imprime em casa ou numa papelaria. Nada vai pelo correio."),
+            ("Precisa imprimir colorido?", "Não. As folhas têm fundo branco, gastam pouca tinta e funcionam em preto e branco."),
+            ("Que papel uso?", "A4 comum, marcando “tamanho real” ou “100%” na impressora. Pros enfeites, papel mais grosso deixa mais firme."),
+            ("Posso imprimir mais de uma vez pros meus filhos?", "Pode. Você imprime quantas vezes quiser pra usar com a sua família. Como as atividades vêm separadas por idade, cada irmão acha as suas."),
+            ("O que tem em cada idade?", "<b>3 a 5 anos:</b> labirintos grandes, ligue os pontos até 18, caminhos pra traçar, 3 desenhos pra colorir, conte e circule, sombras, recorte e cola e bolas de papel pra pendurar na árvore. "
+             "<b>6 e 7 anos:</b> caça-palavras de Natal, da ceia e dos enfeites, pinte pelo número, contas até 10, sequências, desenho de espelho, jogo da memória, quebra-cabeça e corrente de papel. "
+             "<b>8 e 9 anos:</b> cruzadinha, sudoku 6×6, mensagem secreta, jogo dos 7 erros, ligue os 50 pontos, labirinto redondo, mandala, estrela 3D de encaixe e etiquetas pros presentes. "
+             "<b>Pra todas as idades:</b> carta pro Papai Noel (uma pra desenhar, outra pra escrever), 16 missões do ajudante e certificado de Ajudante do Natal."),
+            ("Como eu recebo?", _RECEBE),
+            ("E se eu não gostar?", _GARANTE),
+        ],
+    },
+    "familia-na-mesa": {
+        "pasta": AQUI.parent / "familia-na-mesa", "vitrine": "ebooks",
+        "rotulo": "E-book em PDF pra imprimir", "cta": "e-book",   # a capa e a Kiwify chamam de e-book
+        "sub": "40 brincadeiras impressas pra recortar e jogar na ceia, na confraternização da firma e na virada, do avô ao sobrinho de 8 anos.",
+        "hero": ("previas/pagina-01.png", "Capa do Família na Mesa"), "a4": True,
+        "resumo": "As regras vêm em cartões e o material de cada brincadeira em folhas com marcas de corte, e toda brincadeira diz como incluir as crianças. São 70 páginas em PDF.",
+        "secoes": [
+            # abre com as páginas que mais mostram o jogo; sumário e roteiro (mais texto) vão pra segunda fileira
+            ("Algumas páginas", "Funciona em preto e branco e você imprime só o que vai usar. Toque numa página pra ver em tela cheia.", "stories", [
+                ("previas/pagina-21.png", "Bingo natalino: 30 cartelas diferentes"),
+                ("previas/pagina-40.png", "Fala sem falar"),
+                ("previas/pagina-13.png", "Cartões de regra da mesa da ceia"),
+                ("previas/pagina-51.png", "Prêmios da firma"),
+                ("previas/pagina-03.png", "Sumário"),
+                ("previas/pagina-04.png", "Roteiro da noite do dia 24"),
+                ("previas/pagina-58.png", "Brincadeiras da virada"),
+                ("previas/pagina-65.png", "Contagem com desafios, das 23h às 23h55"),
+            ]),
+        ],
+        "leva": ["40 brincadeiras", "Roteiro da noite do dia 24", "Versão firma e virada", "70 páginas A4"],
+        "arquivos": [("familia-na-mesa.pdf", "70 páginas A4")],
+        "passo4": ("Imprime o que vai usar", "Comece pelas páginas 2 a 5: como usar, sumário e roteiro do dia 24. Recorte nas marcas e guarde cada jogo num envelope."),
+        "fim": "Boa ceia.",
+        # tudo do venda.md, da aula da Kiwify e das páginas do PDF (como usar, sumário: 6 cartelas por folha, 22 cartões de regra da ceia em 6 folhas)
+        "duvidas": [
+            ("É físico ou PDF?", "PDF. São 70 páginas em A4 que você baixa e imprime em casa ou numa papelaria. Nada vai pelo correio."),
+            ("Funciona em preto e branco?", "Funciona, em papel sulfite comum. Na impressão colorida, a cor no alto de cada cartão mostra a versão: vermelho é ceia, verde é firma e azul é virada."),
+            ("Quantas folhas imprimo pra uma ceia de 10 pessoas?", "Depende das brincadeiras que você escolher, porque você imprime só o que vai usar e o sumário mostra a página de cada uma. Os 22 cartões de regra da ceia ocupam 6 folhas. No bingo, cada pessoa joga com uma cartela e vêm 6 por folha: pra 10 pessoas são 2 folhas de cartelas e 1 de fichas."),
+            ("Serve pra festa da firma?", "Serve. A versão firma tem 10 dinâmicas de 15 minutos, com bingo de gente, mímica do escritório, certificados de prêmios e correio do elogio."),
+            ("Como eu recebo?", _RECEBE),
+            ("E se eu não gostar?", _GARANTE),
+        ],
+    },
+}
+
+
+def lado_max(src):
+    """Story (9:16) sai com 720×1280, igual às artes dos packs; post e página A4 saem com 1100 no lado maior."""
+    try:
+        out = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(src)], capture_output=True, text=True, check=True).stdout
+        w, h = (int(x) for x in re.findall(r"pixel(?:Width|Height):\s*(\d+)", out))
+        return 1280 if h / w > 1.7 else 1100
+    except Exception:
+        return 1100
+
+
+def pagina_kit(slug, cfg, v):
+    base = "../../"
+    url = links.get(slug)
+    pr = v["preco"].replace(" ", NB)
+    titulo = v["titulo"] or slug
+    h1 = titulo.split(":", 1)[0].strip()
+    sub = cfg.get("sub") or ponto(v["sub"])
+    nome_cta = "o " + cfg["cta"]
+    cta_txt = f"Comprar {nome_cta} por {pr}"   # o mesmo texto no hero, no bloco de compra e no rodapé
+    pasta = cfg["pasta"]
+    eimg = lambda nome: f"{base}img/ebooks/{nome}"
+
+    def figura(nome, legenda, cls_lista):
+        w, h = dimensoes(f"img/ebooks/{nome}") or (1080, 1350)
+        return (f'<li><a class="abre" href="{eimg(nome)}" data-cap="{esc(legenda)}"><img class="arte" src="{eimg(nome)}" width="{w}" height="{h}" '
+                f'alt="{esc(legenda)}, do {esc(h1)}" loading="lazy"></a><span class="legenda">{esc(legenda)}</span></li>')
+
+    secoes, imagens_sec = [], []
+    for k, (h2, txt, tipo, itens) in enumerate(cfg["secoes"]):
+        lis = []
+        for src, legenda in itens:
+            # nome pelo arquivo de origem (não pela posição): mudar a ordem das prévias não deixa JPG velho com legenda nova
+            nome = f"{slug}-{pathlib.Path(src).stem.lstrip('_')}.jpg"
+            jpg(pasta / src, f"img/ebooks/{nome}", lado_max(pasta / src))
+            lis.append(figura(nome, legenda, tipo))
+            imagens_sec.append(f"{SITE}img/ebooks/{nome}")
+        lista = f'<ul class="grade-posts">{"".join(lis)}</ul>' if tipo == "posts" else f'<ul class="fila-stories">{"".join(lis)}</ul>'
+        secoes.append(f"""<section class="bloco {tipo}"{' id="artes"' if k == 0 else ''} aria-labelledby="t-sec{k}">
+  <div class="cab"><h2 id="t-sec{k}">{esc(h2)}</h2><p>{md_inline(txt)}</p></div>
+  {lista}
+</section>""")
+
+    hero_src, hero_leg = cfg["hero"]
+    jpg(pasta / hero_src, f"img/ebooks/{slug}-capa.jpg", 1350)
+    hw, hh = dimensoes(f"img/ebooks/{slug}-capa.jpg") or (1080, 1350)
+    vezes = lambda s: re.sub(r"(\d) cm\b", "\\1" + NB + "cm", re.sub(r"(\d) x (\d)", "\\1" + NB + "×" + NB + "\\2", re.sub(r"(\d)x(\d)", r"\1×\2", s)))  # 1080x1350 → 1080×1350, igual ao resto da página
+    if cfg.get("dentro"):
+        lista_dentro = '<ul class="eb-lista curta">' + "".join(f"<li><b>{esc(t)}</b><span>{esc(l)}</span></li>" for t, l in cfg["dentro"]) + "</ul>"
+    else:
+        trocas = cfg.get("trocas") or {}
+        lista_dentro = '<ul class="eb-lista">' + "".join(f"<li>{md_inline(vezes(trocas.get(b, b)))}</li>" for b in v["bullets"]) + "</ul>"
+        for t in trocas:
+            if t not in v["bullets"]:
+                AVISOS.append(f"{slug}: troca não achou o item do venda.md: {t[:50]}")
+    compra_h2 = "".join(f'<span class="linha">{l}</span>' for l in cfg.get("compra", [esc(h1)])) + f'<span class="linha">por {pr}</span>'
+    leva = "".join(f"<li>{esc(x)}</li>" for x in cfg.get("leva") or [])
+    lis_pasta = "".join(f"<li><code>{esc(n)}</code><small>{esc(q)}</small></li>" for n, q in cfg.get("arquivos") or [])
+    p4t, p4 = cfg["passo4"]
+    duvidas = cfg.get("duvidas") or []
+    bloco_duv = ('<section class="bloco duvidas" aria-labelledby="t-duvidas">\n  <div>\n    <h2 id="t-duvidas">Dúvidas</h2>\n  </div>\n  <div class="lista-duvidas">\n    '
+                 + "\n    ".join(f"<details><summary>{q}</summary><p>{r}</p></details>" for q, r in duvidas) + "\n  </div>\n</section>\n\n") if duvidas else ""
+    titulo_busca, desc_busca = SEO_PRODUTO.get(slug, (titulo, sub))
+    og = f"{SITE}img/ebooks/{slug}.jpg"
+    imagens = [og, f"{SITE}img/ebooks/{slug}-capa.jpg"] + imagens_sec
+    cam = f"ebooks/{slug}/"
+    categoria = "Artes editáveis pra Instagram" if cfg["vitrine"] == "instagram" else "Material pra imprimir em PDF"
+    ld = jsonld(
+        ld_produto(texto_puro(titulo), desc_busca, imagens[:3], url, pr, slug, categoria),
+        *([ld_faq([(q, texto_puro(r)) for q, r in duvidas])] if duvidas else []),
+        ld_trilha(("Packs de Fim de Ano", ""), (h1, cam)),
+    )
+    quem_txt = ("Faço artes de Instagram pra negócios locais, e montei este kit com o que a confeitaria precisa pra vender as encomendas de Natal."
+                if cfg["vitrine"] == "instagram" else "Além dos packs de artes pra Instagram, faço estes materiais pra imprimir e usar em casa no fim de ano.")
+    return head(titulo_busca, desc_busca, og, base, view_content=True, caminho=cam, og_alt=f"Capa: {texto_puro(titulo)}",
+                ld=ld, preco=pr, imagens=imagens) + f"""<body class="com-barra">
+{topo(base, slug, pr, url)}
+<main>
+<section class="hero kit" aria-labelledby="titulo">
+  <div class="hero-texto">
+    <p class="rotulo">{cfg['rotulo']}</p>
+    <h1 id="titulo">{esc(h1)}</h1>
+    <p class="hero-sub">{md_inline(sub)}</p>
+  </div>
+  <div class="hero-compra">
+    <span class="preco-valor">{pr}</span>
+    {botao(url, cta_txt, pr, ident="cta-hero")}
+    <p class="seguro">{CONFIA}</p>
+  </div>
+  <div class="hero-palco">
+    <a class="eb-capa abre{' a4' if cfg.get('a4') else ''}" href="{eimg(slug + '-capa.jpg')}" data-cap="{esc(hero_leg)}" style="grid-column:1/-1"><img class="arte" src="{eimg(slug + '-capa.jpg')}" width="{hw}" height="{hh}" alt="{esc(hero_leg)}" fetchpriority="high"></a>
+  </div>
+</section>
+
+{chr(10).join(secoes)}
+<section class="bloco" aria-labelledby="t-dentro">
+  <div class="cab"><h2 id="t-dentro">O que tem dentro</h2><p class="eb-desc">{md_inline(cfg['resumo'])}</p></div>
+  {lista_dentro}
+</section>
+
+<section class="creme" aria-labelledby="t-como">
+  <div class="creme-in">
+    <h2 id="t-como">Como você recebe</h2>
+    <ol class="passos">
+      <li><b>Paga na Kiwify</b><span>Pix, cartão ou boleto. A Kiwify processa o pagamento e guarda os arquivos.</span></li>
+      <li><b>Recebe o acesso por e-mail</b><span>Com o login da área de membros. No Pix e no cartão é na hora. No boleto, quando ele compensa.</span></li>
+      <li><b>Baixa os arquivos</b><ul class="pasta">{lis_pasta}</ul></li>
+      <li><b>{esc(p4t)}</b><span>{esc(p4)}</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="bloco compra" id="comprar" aria-labelledby="t-compra">
+  <div class="compra-arte" aria-hidden="true"><img class="arte" src="{eimg(slug + '.jpg')}" width="1080" height="1080" alt="" loading="lazy"></div>
+  <div class="compra-texto">
+    <h2 id="t-compra">{compra_h2}</h2>
+    <ul class="leva">{leva}</ul>
+    {botao(url, cta_txt, pr, cls="btn btn-grande")}
+    <div class="garantias">
+      <p><b>{GARANTIA}.</b> Se não gostar, pede o reembolso na Kiwify dentro de 7{NB}dias e recebe o dinheiro de volta.</p>
+      <p><b>Pagamento seguro.</b> Pix, cartão ou boleto, processado pela Kiwify.</p>
+    </div>
+  </div>
+</section>
+
+{bloco_duv}{quem_fez(base, quem_txt)}</main>
+{rodape(base, cfg["fim"], link=("", TODOS), cta=botao(url, cta_txt, pr, cls="btn btn-grande", ident="comprar-fim"))}
+{barra(url, pr, GARANTIA, "Comprar " + nome_cta)}
+{LUZ}<script src="{base}site.js" defer></script>
+</body>
+</html>
+"""
+
+
+# ----------------------------------------------------------------------------------------------
 # gera tudo
 # ----------------------------------------------------------------------------------------------
 AQUI.joinpath("estilo.css").write_text(CSS)
 AQUI.joinpath("site.js").write_text(JS)
 
 pacotes = {}
+# Pack Igreja: formato próprio (9 posts + 11 stories, sem carrossel). As artes saem de packs-fim-de-ano/saida/igreja
+# e viram JPG em img/igreja/ (720 de largura, igual aos outros packs).
+igreja = None
+if (PACKS / "packs" / "igreja" / "pack.json").exists():
+    igreja = json.loads((PACKS / "packs" / "igreja" / "pack.json").read_text())
+    saida = PACKS / "saida" / "igreja"
+    jpg(saida / "capa-kiwify.png", "img/igreja/capa-kiwify.jpg", 720)
+    jpg(saida / "capa-vitrine.png", "img/igreja/capa-vitrine.jpg", 1080, 82)  # feita por packs-fim-de-ano/capa_vitrine_igreja.py
+    for d in igreja["posts"] + igreja["stories"]:
+        jpg(saida / f"{d['id']}.png", f"img/igreja/{d['id']}.jpg", 1280 if d.get("formato") == "story" else 900)
+    (AQUI / "igreja").mkdir(exist_ok=True)
+    (AQUI / "igreja" / "index.html").write_text(pagina_igreja("igreja", igreja))
+
 for pj in sorted((PACKS / "packs").glob("*/pack.json")):
     slug = pj.parent.name
-    if slug.startswith("_"):
+    if slug.startswith("_") or slug == "igreja":
         continue
     if not (AQUI / "img" / slug / "c1.jpg").exists():
         print("pulado (sem as imagens em img/):", slug)
@@ -1433,6 +2022,25 @@ for e in sorted(EBOOKS.glob("*/venda.md")) + EXTRAS:
     (pd / "index.html").write_text(pagina_ebook(slug, pasta, v, tipo, previas))
     nome = (v["titulo"] or slug).split(":")[0]
     eb_cards.append(f'<li><a href="ebooks/{slug}/"><div class="foto"><img class="arte" src="img/ebooks/{slug}.png" width="1080" height="1080" alt="Capa: {esc(nome)}, {"e-book" if tipo == "E-book" else "kit pra imprimir"} em PDF" loading="lazy"></div><b>{esc(nome)}</b><span>{"E-book" if tipo == "E-book" else "Kit"} ·{NB}{v["preco"].replace(" ", NB)}</span></a></li>')
+
+# kits novos: Cardápio de Natal da Confeitaria (vai junto com o Pack Igreja em "Kits pro Instagram"),
+# Dezembro sem Tela e Família na Mesa (vão em "E-books e kits")
+ig_cards = []
+if igreja:
+    ig_cards.append(f'<li><a href="igreja/"><div class="foto"><img class="arte" src="img/igreja/capa-vitrine.jpg" width="1080" height="1080" alt="Capa do Pack Igreja: 9 posts e 11 stories de Natal e culto da virada" loading="lazy"></div><b>Pack Igreja: Natal e Culto da Virada</b><span>{"20 artes · " + PRECO if links.get("igreja") else "Em breve"}</span></a></li>')
+for slug, cfg in KITS.items():
+    venda = cfg["pasta"] / "venda.md"
+    if not venda.exists():
+        print("pulado (sem venda.md):", slug); continue
+    jpg(cfg["pasta"] / "capa-quadrada.png", f"img/ebooks/{slug}.jpg", 1080, 82)
+    v = ler_venda(venda)
+    pd = AQUI / "ebooks" / slug; pd.mkdir(parents=True, exist_ok=True)
+    (pd / "index.html").write_text(pagina_kit(slug, cfg, v))
+    nome = (v["titulo"] or slug).split(":")[0]
+    card = (f'<li><a href="ebooks/{slug}/"><div class="foto"><img class="arte" src="img/ebooks/{slug}.jpg" width="1080" height="1080" '
+            f'alt="Capa: {esc(nome)}, {"kit editável no Canva" if cfg["vitrine"] == "instagram" else cfg["cta"] + " pra imprimir em PDF"}" loading="lazy"></div>'
+            f'<b>{esc(nome)}</b><span>{cap1(cfg["cta"])} ·{NB}{v["preco"].replace(" ", NB)}</span></a></li>')
+    (ig_cards if cfg["vitrine"] == "instagram" else eb_cards).append(card)
 
 CARGA = {True: 'fetchpriority="high"', False: 'loading="lazy"'}
 vitrine_capas = "".join(
@@ -1469,9 +2077,14 @@ AQUI.joinpath("index.html").write_text(head(
   <ul class="vitrine">{''.join(cards)}</ul>
 </section>
 
+{f'''<section class="bloco" aria-labelledby="t-kits-ig">
+  <div class="cab"><h2 id="t-kits-ig">Kits pro Instagram</h2><p>O pack da igreja, com 20 artes e legenda pra cada uma, e o cardápio de Natal pra confeitaria que vende por encomenda.</p></div>
+  <ul class="vitrine duas">{''.join(ig_cards)}</ul>
+</section>''' if ig_cards else ''}
+
 {f'''<section class="bloco" aria-labelledby="t-ebooks">
-  <div class="cab"><h2 id="t-ebooks">E-books e kits</h2><p>Pra usar em casa no fim de ano: a ceia, as metas, as férias das crianças e o dinheiro de 2027.</p></div>
-  <ul class="vitrine">{''.join(eb_cards)}</ul>
+  <div class="cab"><h2 id="t-ebooks">E-books e kits</h2><p>Pra usar em casa no fim de ano: a ceia, as brincadeiras da mesa, o Natal e as férias das crianças, as metas e o dinheiro de 2027.</p></div>
+  <ul class="vitrine tres">{''.join(eb_cards)}</ul>
 </section>''' if eb_cards else ''}
 
 <section class="creme" aria-labelledby="t-como">
@@ -1486,7 +2099,7 @@ AQUI.joinpath("index.html").write_text(head(
 </section>
 
 {quem_fez("", "Faço artes de Instagram pra consultórios e negócios locais, e montei um pack pra cada profissão com o que todo perfil precisa no fim de ano.")}</main>
-{rodape("", "Boas festas pro seu Instagram.", "Fotos de exemplo: Unsplash, licença livre. ", ("#packs", "Voltar pra lista de profissões"))}
+{rodape("", "Boas festas pro seu Instagram.", "Fotos de exemplo: Unsplash e Wikimedia Commons (domínio público). ", ("#topo", "Voltar ao topo"))}
 <script src="site.js" defer></script>
 </body>
 </html>
@@ -1513,6 +2126,6 @@ AQUI.joinpath("sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\
     + "\n".join(urls) + "\n</urlset>\n")
 AQUI.joinpath("robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n")
 
-print("site gerado:", len(cards), "packs,", len(eb_cards), "e-books/kits,", len(PAGINAS), "páginas no sitemap")
+print("site gerado:", len(cards), "packs,", len(ig_cards), "kits pro Instagram,", len(eb_cards), "e-books/kits,", len(PAGINAS), "páginas no sitemap")
 for a in AVISOS:
     print("AVISO", a)
